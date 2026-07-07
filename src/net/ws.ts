@@ -7,7 +7,8 @@ import { parseMsg, PROTO_VER, SIM_RATE, type ClientMsg, type ServerMsg } from '.
  */
 export class CoopSocket {
   onMessage: (msg: ServerMsg) => void = () => {};
-  onClose: () => void = () => {};
+  /** code/reason straight from the CloseEvent — logged by callers for diagnosis. */
+  onClose: (code: number, reason: string) => void = () => {};
 
   /** Smoothed round-trip time, ms. */
   rttMs = 0;
@@ -27,9 +28,9 @@ export class CoopSocket {
         resolve();
       };
       ws.onerror = () => reject(new Error('ws connect failed'));
-      ws.onclose = () => {
+      ws.onclose = (ev) => {
         this.dispose();
-        this.onClose();
+        this.onClose(ev.code, ev.reason);
       };
       ws.onmessage = (ev) => {
         if (typeof ev.data !== 'string') return;

@@ -92,7 +92,8 @@ export class CoopScene implements Scene {
     this.particles.quality = deps.save.data.settings.lowFx ? 0.45 : 1;
 
     deps.socket.onMessage = (msg) => this.onMessage(msg);
-    deps.socket.onClose = () => {
+    deps.socket.onClose = (code, reason) => {
+      console.error(`[coop] socket fechado durante a partida (code=${code} reason="${reason}")`);
       if (!this.ended) this.deps.onDisconnect();
     };
   }

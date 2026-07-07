@@ -159,4 +159,5 @@ export const S = {
   coopYourShare: 'Sua parte',
   coopChooseUpgrade: 'MELHORIA DISPONÍVEL',
   coopDisconnected: 'Conexão com a operação perdida.',
+  coopAuthFailed: 'Não foi possível validar sua conta no comando. Tente sair e entrar de novo, ou jogue sem conta.',
 } as const;

@@ -44,6 +44,8 @@ const menuScene = new MenuScene(game);
 let coopSocket: CoopSocket | null = null;
 let coopScene: CoopScene | null = null;
 let coopRoom: { code: string; players: RoomPlayer[]; hostSlot: number; localSlot: number } | null = null;
+/** Last 'err' message from the server before a close — lets onClose show a specific reason. */
+let lastCoopErr: string | null = null;
 
 function coopCleanup(): void {
   coopSocket?.close();
@@ -98,12 +100,16 @@ async function coopConnect(after: (sock: CoopSocket) => void): Promise<void> {
     ui.coopStatus(S.coopOffline);
     return;
   }
+  lastCoopErr = null;
   sock.hello(save.data.name || 'PILOTO', token, save.data.meta);
   coopSocket = sock;
   sock.onMessage = coopPrematchMsg;
-  sock.onClose = () => {
+  sock.onClose = (code, reason) => {
+    console.error(`[coop] socket fechado (code=${code} reason="${reason}" lastErr=${lastCoopErr ?? 'nenhum'})`);
     // Mid-match closures are handled by CoopScene; this is lobby-phase only.
-    if (!coopScene) coopBackToMenu(S.coopDisconnected);
+    if (!coopScene) {
+      coopBackToMenu(lastCoopErr === 'bad_token' ? S.coopAuthFailed : S.coopDisconnected);
+    }
   };
   after(sock);
 }
@@ -143,8 +149,11 @@ function coopPrematchMsg(msg: ServerMsg): void {
       coopStartMatch();
       break;
     case 'err':
+      lastCoopErr = msg.code;
+      console.error(`[coop] erro do servidor: ${msg.code}`);
       if (msg.code === 'room_not_found') ui.coopStatus(S.coopRoomNotFound);
       else if (msg.code === 'room_full') ui.coopStatus(S.coopRoomFull);
+      else if (msg.code === 'bad_token') ui.coopStatus(S.coopAuthFailed);
       else ui.coopStatus(S.netError);
       break;
     default:
