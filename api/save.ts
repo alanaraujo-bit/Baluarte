@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { clampCloudSave, mergeCloudSaves, type CloudSave, type SaveResponse } from '../src/net/protocol';
-import { cloudSaveFromRow, db, SAVE_COLS, writeCloudSave } from './_lib/db';
-import { csrfOk, methodIs, sendError } from './_lib/http';
-import { requireSession } from './_lib/session';
+import { clampCloudSave, mergeCloudSaves, type CloudSave, type SaveResponse } from '../src/net/protocol.js';
+import { cloudSaveFromRow, db, SAVE_COLS, writeCloudSave } from './_lib/db.js';
+import { csrfOk, methodIs, sendError } from './_lib/http.js';
+import { requireSession } from './_lib/session.js';
 
 /**
  * PUT /api/save — cloud-save push. Records and aggregates merge

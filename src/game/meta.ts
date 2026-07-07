@@ -1,4 +1,4 @@
-import type { SaveData } from '../core/save';
+import type { SaveData } from '../core/save.js';
 
 /** Permanent upgrades bought with coins in the hangar (menu shop). */
 export interface MetaDef {

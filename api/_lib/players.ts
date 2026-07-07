@@ -1,5 +1,5 @@
-import type { PlayerInfo } from '../../src/net/protocol';
-import type { Queryable } from './db';
+import type { PlayerInfo } from '../../src/net/protocol.js';
+import type { Queryable } from './db.js';
 
 export interface PlayerRow {
   id: string;

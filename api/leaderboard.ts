@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import type { BoardKind, LeaderboardEntry, LeaderboardResponse } from '../src/net/protocol';
-import { db } from './_lib/db';
-import { methodIs, queryParam, sendError } from './_lib/http';
-import { readSession } from './_lib/session';
+import type { BoardKind, LeaderboardEntry, LeaderboardResponse } from '../src/net/protocol.js';
+import { db } from './_lib/db.js';
+import { methodIs, queryParam, sendError } from './_lib/http.js';
+import { readSession } from './_lib/session.js';
 
 const TOP_N = 50;
 

@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import type { RunResponse } from '../src/net/protocol';
-import { db } from './_lib/db';
-import { csrfOk, methodIs, sendError } from './_lib/http';
-import { requireSession } from './_lib/session';
-import { parseRun, runPlausible } from './_lib/validate';
+import type { RunResponse } from '../src/net/protocol.js';
+import { db } from './_lib/db.js';
+import { csrfOk, methodIs, sendError } from './_lib/http.js';
+import { requireSession } from './_lib/session.js';
+import { parseRun, runPlausible } from './_lib/validate.js';
 
 /**
  * POST /api/runs — submit a finished run. This is the only writer of the

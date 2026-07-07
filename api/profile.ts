@@ -1,10 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { handleFromName, nameError, sanitizeName } from '../src/net/names';
-import type { MeResponse, ProfileResponse } from '../src/net/protocol';
-import { cloudSaveFromRow, db, SAVE_COLS } from './_lib/db';
-import { csrfOk, methodIs, queryParam, sendError } from './_lib/http';
-import { allocateHandle, playerInfo, PLAYER_COLS, type PlayerRow } from './_lib/players';
-import { requireSession, setSessionCookie, signSession } from './_lib/session';
+import { handleFromName, nameError, sanitizeName } from '../src/net/names.js';
+import type { MeResponse, ProfileResponse } from '../src/net/protocol.js';
+import { cloudSaveFromRow, db, SAVE_COLS } from './_lib/db.js';
+import { csrfOk, methodIs, queryParam, sendError } from './_lib/http.js';
+import { allocateHandle, playerInfo, PLAYER_COLS, type PlayerRow } from './_lib/players.js';
+import { requireSession, setSessionCookie, signSession } from './_lib/session.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (req.method === 'GET') {

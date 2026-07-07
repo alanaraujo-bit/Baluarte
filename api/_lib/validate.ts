@@ -1,4 +1,4 @@
-import type { RunSubmission } from '../../src/net/protocol';
+import type { RunSubmission } from '../../src/net/protocol.js';
 
 /**
  * Server-side plausibility rules for run submissions. Formulas derive from

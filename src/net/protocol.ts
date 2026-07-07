@@ -1,5 +1,5 @@
-import type { SaveData, Settings } from '../core/save';
-import { META_DEFS } from '../game/meta';
+import type { SaveData, Settings } from '../core/save.js';
+import { META_DEFS } from '../game/meta.js';
 
 /**
  * Wire types and pure merge/clamp logic shared verbatim by the browser

@@ -1,5 +1,5 @@
 import { Pool } from 'pg';
-import type { CloudSave } from '../../src/net/protocol';
+import type { CloudSave } from '../../src/net/protocol.js';
 
 /** Pool or transaction client — both expose query(). */
 export interface Queryable {

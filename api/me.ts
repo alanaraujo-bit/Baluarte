@@ -1,15 +1,15 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import type { MeResponse } from '../src/net/protocol';
-import { cloudSaveFromRow, db, SAVE_COLS } from './_lib/db';
-import { methodIs, sendError } from './_lib/http';
+import type { MeResponse } from '../src/net/protocol.js';
+import { cloudSaveFromRow, db, SAVE_COLS } from './_lib/db.js';
+import { methodIs, sendError } from './_lib/http.js';
 import {
   clearSessionCookie,
   readSession,
   REFRESH_AFTER_S,
   setSessionCookie,
   signSession,
-} from './_lib/session';
-import { playerInfo, PLAYER_COLS, type PlayerRow } from './_lib/players';
+} from './_lib/session.js';
+import { playerInfo, PLAYER_COLS, type PlayerRow } from './_lib/players.js';
 
 /** GET /api/me — restore the cookie session: who am I + my cloud save. */
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
