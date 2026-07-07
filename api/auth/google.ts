@@ -99,7 +99,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     client.release();
   }
 
-  setSessionCookie(res, await signSession(player.id, player.handle));
-  const response: AuthResponse = { player: playerInfo(player), save: cloud, isNew };
-  res.status(200).json(response);
+  try {
+    setSessionCookie(res, await signSession(player.id, player.handle));
+    const response: AuthResponse = { player: playerInfo(player), save: cloud, isNew };
+    res.status(200).json(response);
+  } catch (e) {
+    // The player row is already committed at this point; only session
+    // issuance failed (e.g. JWT_SECRET misconfigured) — report cleanly
+    // instead of letting the runtime crash with an opaque 500.
+    console.error('auth/google session issuance failed', e);
+    sendError(res, 500, 'internal');
+  }
 }
