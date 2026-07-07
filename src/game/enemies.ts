@@ -1,12 +1,12 @@
 import { Pool, swapRemove } from '../core/pool';
 import { chance, clamp, damp, dist2, len, rand, randInt, TAU } from '../core/utils';
-import { drawSprite, glowDot, shapeSprite, DART_POINTS, type Sprite } from '../fx/sprites';
+import { drawSprite, glowDot, shapeSprite, DART_POINTS, type ShapePoints, type Sprite } from '../fx/sprites';
 import { BAL } from './balance';
 import type { World } from './world';
 
 export type EnemyKind = 'drone' | 'dart' | 'splitter' | 'mini' | 'wasp' | 'tank' | 'boss';
 
-interface Spec {
+export interface Spec {
   hp: number;
   speed: number;
   dmg: number;
@@ -16,7 +16,8 @@ interface Spec {
   color: string;
 }
 
-const SPECS: Record<EnemyKind, Spec> = {
+/** Base per-kind stats, scaled at spawn time by the wave's hp/dmg multipliers. */
+export const SPECS: Record<EnemyKind, Spec> = {
   drone:    { hp: 18,  speed: 64,  dmg: 8,  radius: 12, xp: 1, score: 10,  color: '#ff4d6d' },
   dart:     { hp: 9,   speed: 132, dmg: 6,  radius: 9,  xp: 1, score: 15,  color: '#ff9f43' },
   splitter: { hp: 36,  speed: 46,  dmg: 10, radius: 15, xp: 2, score: 25,  color: '#c56cf0' },
@@ -24,6 +25,19 @@ const SPECS: Record<EnemyKind, Spec> = {
   wasp:     { hp: 26,  speed: 74,  dmg: 8,  radius: 11, xp: 2, score: 30,  color: '#f368e0' },
   tank:     { hp: 115, speed: 30,  dmg: 18, radius: 22, xp: 4, score: 50,  color: '#ff3838' },
   boss:     { hp: 520, speed: 58,  dmg: 24, radius: 42, xp: 25, score: 500, color: '#ff2e63' },
+};
+
+interface ShapeOpts { sides?: number; points?: ShapePoints; rotate?: number; innerDetail?: boolean; }
+
+/** Outline geometry per kind, shared with the Codex so its icons match the arena exactly. */
+export const ENEMY_SHAPE_OPTS: Record<EnemyKind, ShapeOpts> = {
+  drone: { sides: 3 },
+  dart: { points: DART_POINTS },
+  splitter: { sides: 4, rotate: Math.PI / 4, innerDetail: true },
+  mini: { sides: 3 },
+  wasp: { sides: 4 },
+  tank: { sides: 6, innerDetail: true },
+  boss: { sides: 8, innerDetail: true },
 };
 
 // Boss phases
@@ -121,24 +135,15 @@ export class Enemies {
   private readonly pendingSpawn: SpawnEvent[] = [];
 
   constructor() {
-    const shapes: Record<EnemyKind, () => [Sprite, Sprite]> = {
-      drone: () => this.bake('drone', { sides: 3 }),
-      dart: () => this.bake('dart', { points: DART_POINTS }),
-      splitter: () => this.bake('splitter', { sides: 4, rotate: Math.PI / 4, innerDetail: true }),
-      mini: () => this.bake('mini', { sides: 3 }),
-      wasp: () => this.bake('wasp', { sides: 4 }),
-      tank: () => this.bake('tank', { sides: 6, innerDetail: true }),
-      boss: () => this.bake('boss', { sides: 8, innerDetail: true }),
-    };
-    (Object.keys(shapes) as EnemyKind[]).forEach((kind) => {
-      const [normal, flash] = shapes[kind]();
+    (Object.keys(ENEMY_SHAPE_OPTS) as EnemyKind[]).forEach((kind) => {
+      const [normal, flash] = this.bake(kind, ENEMY_SHAPE_OPTS[kind]);
       this.sprites.set(kind, normal);
       this.flashes.set(kind, flash);
       this.debris.set(kind, glowDot(5, SPECS[kind].color));
     });
   }
 
-  private bake(kind: EnemyKind, opts: { sides?: number; points?: typeof DART_POINTS; rotate?: number; innerDetail?: boolean }): [Sprite, Sprite] {
+  private bake(kind: EnemyKind, opts: ShapeOpts): [Sprite, Sprite] {
     const spec = SPECS[kind];
     const base = { radius: spec.radius * 1.25, ...opts };
     return [

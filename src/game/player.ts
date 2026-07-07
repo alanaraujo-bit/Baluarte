@@ -1,8 +1,11 @@
 import { clamp, damp, TAU } from '../core/utils';
-import { drawSprite, glowDot, shapeSprite, SHIP_POINTS, type Sprite } from '../fx/sprites';
+import { drawSprite, glowDot, shapeSprite, SHIP_POINTS, type ShapeOptions, type Sprite } from '../fx/sprites';
 import { BAL } from './balance';
 import type { Stats } from './upgrades';
 import type { World } from './world';
+
+/** Shared with the Codex so its ship icon matches the arena exactly. */
+export const SHIP_SHAPE: ShapeOptions = { radius: 17, color: '#35f0ff', points: SHIP_POINTS, fillAlpha: 0.3 };
 
 function angleLerp(a: number, b: number, t: number): number {
   let d = (b - a) % TAU;
@@ -38,7 +41,7 @@ export class Player {
 
   constructor(public stats: Stats) {
     this.hp = stats.maxHp;
-    this.ship = shapeSprite({ radius: 17, color: '#35f0ff', points: SHIP_POINTS, fillAlpha: 0.3 });
+    this.ship = shapeSprite(SHIP_SHAPE);
     this.shipFlash = shapeSprite({ radius: 17, color: '#ffffff', points: SHIP_POINTS, fillAlpha: 0.6 });
     this.thrust = glowDot(5, '#35d5ff');
     this.hurtDot = glowDot(6, '#ff3b5c');

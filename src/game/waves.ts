@@ -7,9 +7,10 @@ export interface WaveEvents {
   onBossWarn(): void;
 }
 
-interface PoolEntry { kind: EnemyKind; weight: number; from: number; }
+export interface PoolEntry { kind: EnemyKind; weight: number; from: number; }
 
-const COMPOSITION: readonly PoolEntry[] = [
+/** Which wave each enemy kind starts appearing in — also drives the Codex's "surgimento" line. */
+export const COMPOSITION: readonly PoolEntry[] = [
   { kind: 'drone', weight: 10, from: 1 },
   { kind: 'dart', weight: 6, from: 2 },
   { kind: 'splitter', weight: 4.5, from: 3 },

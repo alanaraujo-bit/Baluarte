@@ -1,9 +1,13 @@
 import { Pool, swapRemove } from '../core/pool';
 import { chance, dist2, len, rand, TAU } from '../core/utils';
-import { drawSprite, glowDot, shapeSprite, GEM_POINTS, type Sprite } from '../fx/sprites';
+import { drawSprite, glowDot, shapeSprite, GEM_POINTS, type ShapeOptions, type Sprite } from '../fx/sprites';
 import type { World } from './world';
 
 export type PickupKind = 'gem' | 'coin' | 'heart';
+
+/** Shared with the Codex so its pickup icons match the arena exactly. */
+export const GEM_SHAPE: ShapeOptions = { radius: 7, color: '#52ffa8', points: GEM_POINTS, fillAlpha: 0.4 };
+export const COIN_SHAPE: ShapeOptions = { radius: 6.5, color: '#ffc857', sides: 6, fillAlpha: 0.5, rotate: Math.PI / 6 };
 
 interface Pickup {
   kind: PickupKind;
@@ -15,12 +19,12 @@ interface Pickup {
   vacuum: boolean;
 }
 
-const MAX_GEMS = 130;
+export const MAX_GEMS = 130;
 const COLLECT_DIST = 20;
 const MAGNET_ACCEL = 1500;
 const MAX_PULL_SPEED = 620;
 
-function heartSprite(): Sprite {
+export function heartSprite(): Sprite {
   const size = 44;
   const c = document.createElement('canvas');
   c.width = c.height = size;
@@ -59,8 +63,8 @@ export class Pickups {
   private gemCount = 0;
 
   constructor() {
-    this.gem = shapeSprite({ radius: 7, color: '#52ffa8', points: GEM_POINTS, fillAlpha: 0.4 });
-    this.coin = shapeSprite({ radius: 6.5, color: '#ffc857', sides: 6, fillAlpha: 0.5, rotate: Math.PI / 6 });
+    this.gem = shapeSprite(GEM_SHAPE);
+    this.coin = shapeSprite(COIN_SHAPE);
     this.heart = heartSprite();
     this.sparkle = glowDot(4, '#c5ffe2');
   }

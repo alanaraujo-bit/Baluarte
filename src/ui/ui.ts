@@ -2,6 +2,7 @@ import type { SaveSystem } from '../core/save';
 import { fmtTime } from '../core/utils';
 import type { AudioEngine } from '../audio/audio';
 import { S } from '../i18n/strings';
+import { CODEX, CODEX_INTRO, type CodexCategoryId, type CodexEntry } from '../game/codex';
 import { META_DEFS, metaCost, metaLevel } from '../game/meta';
 import { paintIcon, type UpgradeDef } from '../game/upgrades';
 
@@ -41,6 +42,7 @@ export class UI {
   private readonly screens = new Map<string, HTMLElement>();
   private pauseBtn: HTMLElement | null = null;
   private tutorial: HTMLElement | null = null;
+  private codexTab: CodexCategoryId = CODEX[0].id;
 
   constructor(
     private readonly save: SaveSystem,
@@ -139,6 +141,7 @@ export class UI {
       this.actions.startRun();
     }));
     col.appendChild(this.btn(S.upgrades, 'ghost', () => this.showShop()));
+    col.appendChild(this.btn(S.codex, 'ghost', () => this.showCodex()));
     col.appendChild(this.btn(S.settings, 'ghost', () => this.showSettings()));
     s.appendChild(col);
 
@@ -200,6 +203,86 @@ export class UI {
     }
     s.appendChild(list);
     this.open('shop');
+  }
+
+  // ————— codex (in-game encyclopedia) —————
+
+  showCodex(): void {
+    this.hideAll();
+    const s = this.screen('codex');
+
+    const header = el('div', 'row header');
+    header.appendChild(this.btn(`‹ ${S.back}`, 'ghost small', () => this.showMenu()));
+    s.appendChild(header);
+
+    s.appendChild(el('h2', 'heading', S.codex));
+    s.appendChild(el('div', 'subheading', CODEX_INTRO));
+
+    const tabs = el('div', 'row codex-tabs');
+    for (const cat of CODEX) {
+      tabs.appendChild(this.codexTabBtn(cat.label, cat.id === this.codexTab, () => {
+        if (this.codexTab === cat.id) return;
+        this.codexTab = cat.id;
+        this.showCodex();
+      }));
+    }
+    s.appendChild(tabs);
+
+    const active = CODEX.find((c) => c.id === this.codexTab) ?? CODEX[0];
+    const list = el('div', 'scroll list codex-list');
+    list.appendChild(el('div', 'codex-cat-intro', active.intro));
+    active.entries.forEach((entry, i) => list.appendChild(this.codexCard(entry, i)));
+    s.appendChild(list);
+    this.open('codex');
+  }
+
+  private codexTabBtn(label: string, active: boolean, onTap: () => void): HTMLButtonElement {
+    const b = el('button', `tab${active ? ' active' : ''}`, label);
+    b.addEventListener('pointerdown', () => this.audio.play('tap'));
+    b.addEventListener('click', onTap);
+    return b;
+  }
+
+  private codexCard(entry: CodexEntry, i: number): HTMLElement {
+    const card = el('div', 'panel codex-card');
+    card.style.setProperty('--i', String(i));
+    card.style.setProperty('--accent', entry.accent);
+
+    const head = el('button', 'codex-card-head');
+    const icon = el('div', 'icon-wrap');
+    icon.appendChild(entry.icon);
+    head.appendChild(icon);
+
+    const body = el('div', 'grow');
+    body.appendChild(el('div', 'item-name', entry.name));
+    body.appendChild(el('div', 'item-desc', entry.tagline));
+    head.appendChild(body);
+    head.appendChild(el('span', 'codex-chevron', '›'));
+    head.addEventListener('click', () => {
+      this.audio.play('tap');
+      card.classList.toggle('open');
+    });
+    card.appendChild(head);
+
+    const details = el('div', 'codex-card-body');
+    details.appendChild(el('p', 'codex-lore', entry.lore));
+    if (entry.tactic) {
+      const tactic = el('div', 'codex-tactic');
+      tactic.appendChild(el('span', 'codex-tactic-label', 'TÁTICA'));
+      tactic.appendChild(el('p', 'codex-tactic-text', entry.tactic));
+      details.appendChild(tactic);
+    }
+    const grid = el('div', 'codex-stat-grid');
+    for (const stat of entry.stats) {
+      const row = el('div', 'codex-stat');
+      row.appendChild(el('span', 'codex-stat-label', stat.label));
+      row.appendChild(el('span', 'codex-stat-value', stat.value));
+      grid.appendChild(row);
+    }
+    details.appendChild(grid);
+    card.appendChild(details);
+
+    return card;
   }
 
   // ————— settings —————

@@ -4,6 +4,7 @@ export const S = {
   tagline: 'Resista à Ruína',
   play: 'JOGAR',
   upgrades: 'MELHORIAS',
+  codex: 'CÓDEX',
   settings: 'AJUSTES',
   back: 'VOLTAR',
   bestWave: 'Melhor onda',

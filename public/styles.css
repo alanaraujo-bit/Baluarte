@@ -359,6 +359,144 @@ html, body {
 
 .stats-line { margin-top: 20px; }
 
+/* ————— codex ————— */
+
+.codex-tabs {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  justify-content: flex-start;
+  gap: 8px;
+  margin: 14px 0 6px;
+  scrollbar-width: none;
+}
+.codex-tabs::-webkit-scrollbar { display: none; }
+
+.tab {
+  flex-shrink: 0;
+  padding: 9px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(143, 163, 200, 0.28);
+  background: rgba(20, 28, 52, 0.55);
+  color: var(--dim);
+  font-family: var(--font);
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: transform 0.1s ease, background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.tab:active { transform: scale(0.94); }
+.tab.active {
+  color: var(--text);
+  border-color: rgba(53, 240, 255, 0.7);
+  background: linear-gradient(180deg, rgba(53, 240, 255, 0.28), rgba(53, 240, 255, 0.08));
+  box-shadow: 0 0 14px rgba(53, 240, 255, 0.25);
+}
+
+.codex-list { margin-top: 4px; }
+.codex-cat-intro {
+  font-size: 12.5px;
+  color: var(--dim);
+  line-height: 1.5;
+  padding: 2px 4px 6px;
+}
+
+.codex-card {
+  overflow: hidden;
+  border-left: 3px solid var(--accent, var(--cyan-dim));
+  animation: rowIn 0.4s cubic-bezier(0.2, 1.2, 0.4, 1) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+
+.codex-card-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: none;
+  border: none;
+  color: inherit;
+  font-family: var(--font);
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.codex-chevron {
+  flex-shrink: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--dim);
+  transition: transform 0.25s cubic-bezier(0.2, 1.2, 0.4, 1), color 0.25s ease;
+}
+.codex-card.open .codex-chevron {
+  transform: rotate(90deg);
+  color: var(--accent, var(--cyan));
+}
+
+.codex-card-body {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  padding: 0 14px;
+  transition: max-height 0.35s cubic-bezier(0.2, 1, 0.4, 1), opacity 0.25s ease, padding 0.3s ease;
+}
+.codex-card.open .codex-card-body {
+  max-height: 700px;
+  opacity: 1;
+  padding: 0 14px 16px;
+}
+
+.codex-lore {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text);
+  padding-top: 12px;
+  border-top: 1px solid rgba(88, 130, 255, 0.1);
+}
+
+.codex-tactic {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(53, 240, 255, 0.06);
+  border: 1px solid rgba(53, 240, 255, 0.16);
+}
+.codex-tactic-label {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  color: var(--cyan);
+  margin-bottom: 4px;
+}
+.codex-tactic-text {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.codex-stat-grid {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.codex-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(88, 130, 255, 0.08);
+  font-size: 12px;
+}
+.codex-stat:last-child { border-bottom: none; }
+.codex-stat-label { color: var(--dim); flex-shrink: 0; }
+.codex-stat-value { color: var(--text); font-weight: 700; text-align: right; }
+
 /* ————— toggles ————— */
 
 .toggle-row {
