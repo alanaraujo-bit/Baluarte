@@ -100,7 +100,7 @@ if (boot) {
   setTimeout(() => boot.remove(), 700);
 }
 
-// Offline support (PWA) — disabled temporarily for debugging
+// Offline support (PWA) — disabled temporarily for debugging.
 // const isLocal = ['localhost', '127.0.0.1'].includes(location.hostname);
 // if ('serviceWorker' in navigator && (location.protocol === 'https:' || isLocal)) {
 //   window.addEventListener('load', () => {
@@ -109,3 +109,18 @@ if (boot) {
 //     });
 //   });
 // }
+
+// Cleanup: a Service Worker registered by an earlier deploy stays active
+// across deploys (browsers only re-check a SW script if its bytes change),
+// so it can keep serving a stale/corrupted cached main.js forever even
+// after we disable registration above. Force it off for every visitor.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then((regs) => {
+    for (const reg of regs) reg.unregister();
+  });
+}
+if ('caches' in window) {
+  caches.keys().then((keys) => {
+    for (const key of keys) caches.delete(key);
+  });
+}
