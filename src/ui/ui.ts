@@ -273,6 +273,7 @@ export class UI {
       }));
     }
     s.appendChild(tabs);
+    this.scrollActiveTabIntoView(tabs);
 
     const active = CODEX.find((c) => c.id === this.codexTab) ?? CODEX[0];
     const list = el('div', 'scroll list codex-list');
@@ -280,6 +281,12 @@ export class UI {
     active.entries.forEach((entry, i) => list.appendChild(this.codexCard(entry, i)));
     s.appendChild(list);
     this.open('codex');
+  }
+
+  /** Tabs overflow horizontally; without this the active one can scroll out
+   * of sight and the bar looks like nothing is selected. */
+  private scrollActiveTabIntoView(tabs: HTMLElement): void {
+    tabs.querySelector('.tab.active')?.scrollIntoView({ inline: 'center', block: 'nearest' });
   }
 
   private codexTabBtn(label: string, active: boolean, onTap: () => void): HTMLButtonElement {
@@ -707,6 +714,7 @@ export class UI {
       }));
     }
     s.appendChild(tabs);
+    this.scrollActiveTabIntoView(tabs);
 
     const list = el('div', 'scroll list lb-list');
     s.appendChild(list);
