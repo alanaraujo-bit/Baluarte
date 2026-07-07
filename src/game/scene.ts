@@ -16,6 +16,7 @@ import { Player } from './player';
 import { EnemyShots, PlayerShots } from './projectiles';
 import { S } from '../i18n/strings';
 import type { RunSubmission } from '../net/protocol';
+import { SECTORS, sectorForWave } from './sectors';
 import { TutorialDirector, type TutorialHooks } from './tutorial';
 import { computeStats, rollChoices, type Stats } from './upgrades';
 import { WaveDirector, type Director } from './waves';
@@ -66,6 +67,9 @@ export class GameScene implements Scene, World {
   private trauma = 0;
   private deathT = 0;
   private tutorialActive = false;
+  /** Sector-transition screen flash: 1 → 0 over ~a second. */
+  private sectorFlash = 0;
+  private sectorFlashColor = '#ffffff';
 
   private readonly upgLevels = new Map<string, number>();
   private readonly waves: Director;
@@ -97,10 +101,20 @@ export class GameScene implements Scene, World {
           this.audio.play('wave');
           this.deps.music.intensity = Math.min(1, wave / 12);
         },
-        onBossWarn: () => {
-          this.deps.ui.banner('COLOSSO DA RUÍNA', 'ELE SENTIU SUA PRESENÇA', true);
+        onBossWarn: (sector) => {
+          this.deps.ui.banner(sector.boss.name.toUpperCase(), sector.boss.warnSub, true);
           this.audio.play('warn');
           this.deps.music.intensity = 1;
+        },
+        onSector: (sector, number) => {
+          this.deps.ui.banner(`SETOR ${number} — ${sector.name}`, sector.subtitle, true);
+          this.audio.play('sector');
+          this.bg.setTheme(sector.background);
+          this.deps.music.setTheme(sector.music);
+          this.deps.music.intensity = 0.35;
+          this.sectorFlash = 1;
+          this.sectorFlashColor = sector.accent;
+          this.shake(24);
         },
       });
     }
@@ -115,6 +129,8 @@ export class GameScene implements Scene, World {
   enter(): void {
     this.deps.music.setMode('game');
     this.deps.music.intensity = 0;
+    this.deps.music.setTheme(SECTORS[0].music);
+    this.bg.setTheme(SECTORS[0].background);
     // The guided tutorial stages its own arena and announcements.
     if (this.tutorialDir) return;
     this.deps.ui.banner('ONDA 1');
@@ -194,6 +210,7 @@ export class GameScene implements Scene, World {
     this.camX += (this.player.x - this.camX) * k;
     this.camY += (this.player.y - this.camY) * k;
     this.trauma = Math.max(0, this.trauma - 2.4 * dt);
+    this.sectorFlash = Math.max(0, this.sectorFlash - 0.9 * dt);
   }
 
   // — World callbacks —
@@ -245,7 +262,8 @@ export class GameScene implements Scene, World {
     this.audio.play('bossDie');
     this.hitStop(0.4, 0.05);
     this.shake(42);
-    this.deps.ui.banner('COLOSSO DESTRUÍDO', 'A Ruína recua... por enquanto');
+    const boss = sectorForWave(this.waves.wave).boss;
+    this.deps.ui.banner(boss.defeatTitle, boss.defeatSub);
   }
 
   onGemCollected(value: number): void {
@@ -414,6 +432,15 @@ export class GameScene implements Scene, World {
     ctx.restore();
 
     this.bg.renderVignette(ctx, w, h);
+
+    // Sector-transition flash: covers the theme swap, fades right out.
+    if (this.sectorFlash > 0) {
+      ctx.globalAlpha = Math.pow(this.sectorFlash, 1.6) * 0.5;
+      ctx.fillStyle = this.sectorFlashColor;
+      ctx.fillRect(0, 0, w, h);
+      ctx.globalAlpha = 1;
+    }
+
     this.renderJoystick(ctx);
 
     const hv = this.hudView;
@@ -426,8 +453,11 @@ export class GameScene implements Scene, World {
     hv.runTime = this.runTime;
     hv.coins = this.coinsRun;
     hv.combo = this.combo;
+    hv.hideWave = this.tutorialDir !== null;
     const boss = this.enemies.boss;
-    hv.boss = boss ? { hp: boss.hp, maxHp: boss.maxHp } : null;
+    hv.boss = boss
+      ? { hp: boss.hp, maxHp: boss.maxHp, name: sectorForWave(this.waves.wave).boss.name }
+      : null;
     this.hud.render(ctx, hv, vp, time);
   }
 

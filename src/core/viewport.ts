@@ -22,7 +22,22 @@ export class Viewport {
 
     window.addEventListener('resize', () => this.resize());
     window.addEventListener('orientationchange', () => this.resize());
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') this.resize();
+    });
     this.resize();
+    // Some mobile browsers report env(safe-area-inset-*) as 0 for the first
+    // frame or two after a cold PWA launch, before settling on the real
+    // value. Re-measure for a bit so a late-arriving inset still applies.
+    this.settleSafeArea();
+  }
+
+  private settleSafeArea(triesLeft = 10): void {
+    if (triesLeft <= 0) return;
+    requestAnimationFrame(() => {
+      this.resize();
+      this.settleSafeArea(triesLeft - 1);
+    });
   }
 
   onResize(fn: () => void): void {

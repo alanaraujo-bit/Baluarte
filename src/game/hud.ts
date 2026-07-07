@@ -12,7 +12,9 @@ export interface HudView {
   runTime: number;
   coins: number;
   combo: number;
-  boss: { hp: number; maxHp: number } | null;
+  boss: { hp: number; maxHp: number; name: string } | null;
+  /** Guided tutorial pins wave at 1 and shows its own skip button up top; skip the pill to avoid overlap. */
+  hideWave?: boolean;
 }
 
 const FONT = '"Segoe UI", system-ui, -apple-system, sans-serif';
@@ -29,105 +31,117 @@ export class Hud {
     const dt = clamp(time - this.lastTime, 0, 0.1);
     this.lastTime = time;
     const w = vp.w;
+    const h = vp.h;
     const top = vp.safeTop;
+    const bottom = vp.safeBottom;
 
     // Low HP warning underlay.
     const hpRatio = v.maxHp > 0 ? v.hp / v.maxHp : 0;
     if (hpRatio < 0.35 && v.hp > 0) {
       const pulse = 0.5 + Math.sin(time * 6) * 0.5;
-      this.drawRedVignette(ctx, vp.w, vp.h, (0.35 - hpRatio) * 1.6 * (0.4 + 0.6 * pulse));
+      this.drawRedVignette(ctx, w, h, (0.35 - hpRatio) * 1.6 * (0.4 + 0.6 * pulse));
     }
 
-    // XP bar across the very top.
-    const xpY = top + 8;
-    this.bar(ctx, MARGIN, xpY, w - MARGIN * 2, 5, 3, 'rgba(255,255,255,0.09)');
+    // XP bar across the very top, below safe-area.
+    const xpY = top + 6;
+    this.bar(ctx, MARGIN, xpY, w - MARGIN * 2, 4, 2, 'rgba(255,255,255,0.09)');
     const xpRatio = clamp(v.xp / v.xpNeed, 0, 1);
     if (xpRatio > 0.01) {
       const g = ctx.createLinearGradient(MARGIN, 0, w - MARGIN, 0);
       g.addColorStop(0, '#35f0ff');
       g.addColorStop(1, '#52ffa8');
-      this.bar(ctx, MARGIN, xpY, (w - MARGIN * 2) * xpRatio, 5, 3, g);
+      this.bar(ctx, MARGIN, xpY, (w - MARGIN * 2) * xpRatio, 4, 2, g);
     }
 
-    const rowY = top + 22;
+    // Main HUD row: HP | Level | Wave | Timer | Coins, all at same baseline.
+    const hudY = top + 18;
+    const hudGap = 8;
+    const cellHeight = 18;
+    const smallFont = `700 10px ${FONT}`;
+    const mediumFont = `800 12px ${FONT}`;
+    const padding = 2;
 
-    // HP bar.
-    const hpW = 138;
-    this.bar(ctx, MARGIN, rowY, hpW, 16, 8, 'rgba(6,10,24,0.72)');
+    // Left side: HP + Level stacked.
+    const hpW = Math.min(100, (w - MARGIN * 2 - hudGap * 2) * 0.2);
+    this.bar(ctx, MARGIN, hudY, hpW, cellHeight, 6, 'rgba(6,10,24,0.72)');
     if (hpRatio > 0) {
       const color = hpRatio < 0.35 ? '#ff3b5c' : '#52ffa8';
-      this.bar(ctx, MARGIN + 2, rowY + 2, (hpW - 4) * hpRatio, 12, 6, color, 0.9);
+      this.bar(ctx, MARGIN + padding, hudY + padding, (hpW - padding * 2) * hpRatio, cellHeight - padding * 2, 5, color, 0.9);
     }
-    ctx.font = `700 10px ${FONT}`;
+    ctx.font = smallFont;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = 'rgba(2,8,16,0.9)';
-    ctx.fillText(`${Math.ceil(v.hp)}`, MARGIN + hpW / 2, rowY + 8.5);
-    ctx.fillStyle = '#eaf6ff';
+    ctx.fillText(`${Math.ceil(v.hp)}`, MARGIN + hpW / 2, hudY + cellHeight / 2);
 
-    // Level chip, tucked under the HP bar.
-    ctx.font = `800 11px ${FONT}`;
+    // Level chip below HP.
+    ctx.font = `800 10px ${FONT}`;
     ctx.textAlign = 'left';
     ctx.fillStyle = '#7df3ff';
-    ctx.fillText(`NV ${v.level}`, MARGIN + 2, rowY + 30);
+    ctx.fillText(`NV${v.level}`, MARGIN + padding, hudY + cellHeight + 10);
 
-    // Wave pill, centered.
-    const waveText = `ONDA ${v.wave}`;
-    ctx.font = `800 13px ${FONT}`;
-    const tw = ctx.measureText(waveText).width;
-    const pillW = tw + 26;
-    this.bar(ctx, w / 2 - pillW / 2, rowY - 2, pillW, 21, 10, 'rgba(6,10,24,0.72)');
-    ctx.strokeStyle = 'rgba(53,240,255,0.35)';
-    ctx.lineWidth = 1;
-    roundRectPath(ctx, w / 2 - pillW / 2, rowY - 2, pillW, 21, 10);
-    ctx.stroke();
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#eaf6ff';
-    ctx.fillText(waveText, w / 2, rowY + 9);
+    // Center left: Wave pill (if not hidden).
+    let centerX = w / 2;
+    if (!v.hideWave) {
+      const waveText = `ONDA ${v.wave}`;
+      ctx.font = mediumFont;
+      const tw = ctx.measureText(waveText).width;
+      const pillW = Math.min(tw + 18, w * 0.25);
+      const pillX = centerX - pillW / 2;
+      this.bar(ctx, pillX, hudY, pillW, cellHeight, 6, 'rgba(6,10,24,0.72)');
+      ctx.strokeStyle = 'rgba(53,240,255,0.35)';
+      ctx.lineWidth = 1;
+      roundRectPath(ctx, pillX, hudY, pillW, cellHeight, 6);
+      ctx.stroke();
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#eaf6ff';
+      ctx.fillText(waveText, centerX, hudY + cellHeight / 2);
+    }
 
-    // Timer + coins on the right, clear of the pause button.
-    const right = w - MARGIN - 54;
+    // Right side: Timer + Coins stacked, clearing pause button.
+    const rightX = w - MARGIN - Math.max(50, w * 0.15);
+    ctx.font = `700 11px ${FONT}`;
     ctx.textAlign = 'right';
-    ctx.font = `700 14px ${FONT}`;
     ctx.fillStyle = '#eaf6ff';
-    ctx.fillText(fmtTime(v.runTime), right, rowY + 6);
-    ctx.font = `800 12px ${FONT}`;
+    ctx.fillText(fmtTime(v.runTime), rightX, hudY + 6);
+
+    ctx.font = `800 10px ${FONT}`;
     ctx.fillStyle = '#ffc857';
     const coinText = `${v.coins}`;
-    ctx.fillText(coinText, right, rowY + 24);
+    ctx.fillText(coinText, rightX, hudY + cellHeight + 4);
     const ctw = ctx.measureText(coinText).width;
     ctx.beginPath();
-    ctx.arc(right - ctw - 9, rowY + 24, 4, 0, Math.PI * 2);
+    ctx.arc(rightX - ctw - 8, hudY + cellHeight + 4, 3, 0, Math.PI * 2);
     ctx.fillStyle = '#ffc857';
     ctx.fill();
 
-    // Combo counter.
+    // Combo counter below main row.
     if (v.combo > this.lastCombo) this.comboPop = 1;
     this.lastCombo = v.combo;
     this.comboPop = Math.max(0, this.comboPop - dt * 5);
     if (v.combo >= BAL.combo.showFrom) {
-      const size = 17 + this.comboPop * 7;
+      const size = 16 + this.comboPop * 6;
       ctx.font = `900 ${size.toFixed(0)}px ${FONT}`;
       ctx.textAlign = 'center';
       ctx.shadowColor = '#ffc857';
-      ctx.shadowBlur = 12;
+      ctx.shadowBlur = 10;
       ctx.fillStyle = '#ffc857';
-      ctx.fillText(`x${v.combo}`, w / 2, rowY + 42);
+      ctx.fillText(`x${v.combo}`, w / 2, hudY + cellHeight + 24);
       ctx.shadowBlur = 0;
     }
 
-    // Boss health.
+    // Boss health, positioned to avoid bottom safe-area.
     if (v.boss) {
-      const bw = Math.min(300, w - MARGIN * 2);
+      const bw = Math.min(280, w - MARGIN * 2);
       const bx = w / 2 - bw / 2;
-      const by = rowY + 70;
-      ctx.font = `800 10px ${FONT}`;
+      const by = h - bottom - 50;
+      ctx.font = `800 9px ${FONT}`;
       ctx.textAlign = 'center';
       ctx.fillStyle = '#ff9eb5';
-      ctx.fillText('C O L O S S O   D A   R U Í N A', w / 2, by - 7);
-      this.bar(ctx, bx, by, bw, 8, 4, 'rgba(6,10,24,0.72)');
+      ctx.fillText(v.boss.name.toUpperCase().split('').join(' '), w / 2, by - 4);
+      this.bar(ctx, bx, by + 4, bw, 7, 3, 'rgba(6,10,24,0.72)');
       const ratio = clamp(v.boss.hp / v.boss.maxHp, 0, 1);
-      this.bar(ctx, bx + 1, by + 1, (bw - 2) * ratio, 6, 3, '#ff2e63', 0.95);
+      this.bar(ctx, bx + 1, by + 5, (bw - 2) * ratio, 5, 2, '#ff2e63', 0.95);
     }
   }
 
