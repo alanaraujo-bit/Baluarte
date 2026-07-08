@@ -9,6 +9,8 @@ export class Viewport {
   dpr = 1;
   safeTop = 0;
   safeBottom = 0;
+  /** Multiplicador de resolução do jogador (setting gráfico). 0.5–1. */
+  private resolutionScale = 1;
 
   private readonly probe: HTMLDivElement;
   private readonly listeners: Array<() => void> = [];
@@ -44,8 +46,14 @@ export class Viewport {
     this.listeners.push(fn);
   }
 
+  /** Setting gráfico de "Resolução de renderização". Reaplica no próximo resize. */
+  setResolutionScale(scale: number): void {
+    this.resolutionScale = Math.min(1, Math.max(0.5, scale));
+    this.resize();
+  }
+
   resize(): void {
-    this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+    this.dpr = Math.min(window.devicePixelRatio || 1, 2) * this.resolutionScale;
     this.w = window.innerWidth;
     this.h = window.innerHeight;
     this.canvas.width = Math.round(this.w * this.dpr);

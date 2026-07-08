@@ -97,7 +97,7 @@ export class GameScene implements Scene, World {
     this.input = deps.game.input;
     this.player = new Player(computeStats(deps.save.data, this.lv));
     this.players = [this.player];
-    this.particles.quality = deps.save.data.settings.lowFx ? 0.45 : 1;
+    this.particles.quality = deps.save.data.settings.graphics.particleQuality;
     this.deathDot = glowDot(10, '#9ff2ff');
     if (deps.tutorial) {
       this.tutorialDir = new TutorialDirector({ ui: deps.ui, save: deps.save, hooks: deps.tutorial });
@@ -130,6 +130,14 @@ export class GameScene implements Scene, World {
         },
       });
     }
+    this.applyGraphicsDensity(deps.save.data.settings.graphics.entityDensity);
+  }
+
+  /** Setting de gráficos (densidade de entidades) — cap de inimigos/gemas/floaters. */
+  applyGraphicsDensity(mul: number): void {
+    this.waves.densityMul = mul;
+    this.pickups.setDensity(mul);
+    this.floaters.setDensity(mul);
   }
 
   get isTutorial(): boolean {
@@ -288,10 +296,12 @@ export class GameScene implements Scene, World {
   }
 
   shake(amount: number): void {
+    if (!this.deps.save.data.settings.graphics.screenShake) return;
     this.trauma = Math.min(1, this.trauma + amount / 100);
   }
 
   hitStop(seconds: number, scale = 0.08): void {
+    if (!this.deps.save.data.settings.graphics.hitStop) return;
     this.deps.game.hitStop(seconds, scale);
   }
 
@@ -497,27 +507,28 @@ export class GameScene implements Scene, World {
     const { w, h } = vp;
     const time = this.deps.game.time;
 
+    const gfx = this.deps.save.data.settings.graphics;
     const s = this.trauma * this.trauma;
     const sx = (Math.random() * 2 - 1) * 13 * s;
     const sy = (Math.random() * 2 - 1) * 13 * s;
 
-    this.bg.render(ctx, this.camX - w / 2 + sx, this.camY - h / 2 + sy, w, h, time);
+    this.bg.render(ctx, this.camX - w / 2 + sx, this.camY - h / 2 + sy, w, h, time, gfx.background);
 
     ctx.save();
     ctx.translate(w / 2 - this.camX + sx, h / 2 - this.camY + sy);
-    this.pickups.render(ctx, time);
-    this.enemyShots.render(ctx, time);
-    this.enemies.render(ctx, time);
+    this.pickups.render(ctx, time, this.camX, this.camY, w, h);
+    this.enemyShots.render(ctx, time, this.camX, this.camY, w, h);
+    this.enemies.render(ctx, time, this.camX, this.camY, w, h);
     this.orbitals.render(ctx, this.player);
     this.nova.render(ctx, this.player, time);
     this.player.render(ctx, time);
-    this.playerShots.render(ctx);
+    this.playerShots.render(ctx, this.camX, this.camY, w, h);
     this.particles.render(ctx);
     this.floaters.render(ctx);
     this.tutorialDir?.renderWorld(ctx, this, time);
     ctx.restore();
 
-    this.bg.renderVignette(ctx, w, h);
+    if (gfx.vignette) this.bg.renderVignette(ctx, w, h);
 
     // Sector-transition flash: covers the theme swap, fades right out.
     if (this.sectorFlash > 0) {
@@ -544,7 +555,7 @@ export class GameScene implements Scene, World {
     hv.boss = boss
       ? { hp: boss.hp, maxHp: boss.maxHp, name: (this.waves.bossInfo?.() ?? sectorForWave(this.waves.wave).boss).name }
       : null;
-    this.hud.render(ctx, hv, vp, time);
+    this.hud.render(ctx, hv, vp, time, gfx.glow);
   }
 
   private renderJoystick(ctx: CanvasRenderingContext2D): void {
@@ -572,14 +583,15 @@ export class GameScene implements Scene, World {
 /** Ambient backdrop rendered behind the DOM menus. */
 export class MenuScene implements Scene {
   private readonly bg = new Background();
-  private readonly particles = new Particles();
+  readonly particles = new Particles();
   private readonly motes: Sprite[];
   private t = 0;
   private camX = 0;
   private camY = 0;
 
-  constructor(private readonly game: Game) {
+  constructor(private readonly game: Game, private readonly save: SaveSystem) {
     this.motes = [glowDot(4, '#3ec6ff'), glowDot(5, '#b45cff'), glowDot(3, '#52ffa8')];
+    this.particles.quality = save.data.settings.graphics.particleQuality;
   }
 
   enter(): void {}
@@ -609,11 +621,12 @@ export class MenuScene implements Scene {
 
   render(ctx: CanvasRenderingContext2D): void {
     const { w, h } = this.game.vp;
-    this.bg.render(ctx, this.camX - w / 2, this.camY - h / 2, w, h, this.t);
+    const gfx = this.save.data.settings.graphics;
+    this.bg.render(ctx, this.camX - w / 2, this.camY - h / 2, w, h, this.t, gfx.background);
     ctx.save();
     ctx.translate(w / 2 - this.camX, h / 2 - this.camY);
     this.particles.render(ctx);
     ctx.restore();
-    this.bg.renderVignette(ctx, w, h);
+    if (gfx.vignette) this.bg.renderVignette(ctx, w, h);
   }
 }

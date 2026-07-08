@@ -38,7 +38,7 @@ export class Hud {
   private redVignette: HTMLCanvasElement | null = null;
   private redKey = '';
 
-  render(ctx: CanvasRenderingContext2D, v: HudView, vp: Viewport, time: number): void {
+  render(ctx: CanvasRenderingContext2D, v: HudView, vp: Viewport, time: number, glow = true): void {
     const dt = clamp(time - this.lastTime, 0, 0.1);
     this.lastTime = time;
     const w = vp.w;
@@ -159,8 +159,10 @@ export class Hud {
       const size = 16 + this.comboPop * 6;
       ctx.font = `900 ${size.toFixed(0)}px ${FONT}`;
       ctx.textAlign = 'center';
-      ctx.shadowColor = '#ffc857';
-      ctx.shadowBlur = 10;
+      if (glow) {
+        ctx.shadowColor = '#ffc857';
+        ctx.shadowBlur = 10;
+      }
       ctx.fillStyle = '#ffc857';
       ctx.fillText(`x${v.combo}`, w / 2, hudY + cellHeight + 24);
       ctx.shadowBlur = 0;

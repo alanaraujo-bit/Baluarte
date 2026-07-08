@@ -1,3 +1,4 @@
+import { isVisible } from '../core/culling';
 import { Pool, swapRemove } from '../core/pool';
 import { chance, dist2, TAU } from '../core/utils';
 import { drawSprite, glowDot, shapeSprite, BOLT_POINTS, type Sprite } from '../fx/sprites';
@@ -145,9 +146,10 @@ export class PlayerShots {
     this.muzzle = glowDot(7, '#b5faff');
   }
 
-  render(ctx: CanvasRenderingContext2D): void {
+  render(ctx: CanvasRenderingContext2D, camX: number, camY: number, vpW: number, vpH: number): void {
     this.ensureSprites();
     for (const shot of this.active) {
+      if (!isVisible(shot.x, shot.y, camX, camY, vpW, vpH)) continue;
       drawSprite(ctx, shot.crit ? this.boltCrit! : this.bolt!, shot.x, shot.y, shot.angle);
     }
   }
@@ -210,9 +212,10 @@ export class EnemyShots {
     }
   }
 
-  render(ctx: CanvasRenderingContext2D, time: number): void {
+  render(ctx: CanvasRenderingContext2D, time: number, camX: number, camY: number, vpW: number, vpH: number): void {
     if (!this.orb) this.orb = glowDot(7, '#ff4ecd');
     for (const o of this.active) {
+      if (!isVisible(o.x, o.y, camX, camY, vpW, vpH)) continue;
       const pulse = 1 + Math.sin(time * 12 + o.x) * 0.15;
       drawSprite(ctx, this.orb, o.x, o.y, 0, pulse);
     }

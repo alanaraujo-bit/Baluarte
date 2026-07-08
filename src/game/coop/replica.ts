@@ -1,3 +1,4 @@
+import { isVisible } from '../../core/culling';
 import { clamp, TAU } from '../../core/utils';
 import { drawSprite, glowDot, shapeSprite, BOLT_POINTS, type Sprite } from '../../fx/sprites';
 import { ENEMY_KINDS, PICKUP_KINDS, STRIDE, type Snap } from '../../net/realtime';
@@ -85,13 +86,17 @@ export class ReplicaView {
     return best;
   }
 
-  renderPickups(ctx: CanvasRenderingContext2D, alpha: number, time: number): void {
+  renderPickups(
+    ctx: CanvasRenderingContext2D, alpha: number, time: number,
+    camX: number, camY: number, vpW: number, vpH: number,
+  ): void {
     const b = this.b;
     if (!b) return;
     this.ensurePickupSprites();
     const arr = b.snap.pickups;
     for (let i = 0; i < arr.length; i += STRIDE.pickup) {
       const [x, y] = this.pairPos(arr, i, 2, this.a?.pickups, this.a?.snap.pickups, STRIDE.pickup, alpha);
+      if (!isVisible(x, y, camX, camY, vpW, vpH)) continue;
       const kind = PICKUP_KINDS[arr[i + 1]];
       const id = arr[i];
       const bob = Math.sin(time * 3.4 + id) * 2.5;
@@ -101,19 +106,26 @@ export class ReplicaView {
     }
   }
 
-  renderEnemyShots(ctx: CanvasRenderingContext2D, alpha: number, time: number): void {
+  renderEnemyShots(
+    ctx: CanvasRenderingContext2D, alpha: number, time: number,
+    camX: number, camY: number, vpW: number, vpH: number,
+  ): void {
     const b = this.b;
     if (!b) return;
     if (!this.orb) this.orb = glowDot(7, '#ff4ecd');
     const arr = b.snap.eshots;
     for (let i = 0; i < arr.length; i += STRIDE.eshot) {
       const [x, y] = this.pairPos(arr, i, 1, this.a?.eshots, this.a?.snap.eshots, STRIDE.eshot, alpha);
+      if (!isVisible(x, y, camX, camY, vpW, vpH)) continue;
       const pulse = 1 + Math.sin(time * 12 + x) * 0.15;
       drawSprite(ctx, this.orb, x, y, 0, pulse);
     }
   }
 
-  renderEnemies(ctx: CanvasRenderingContext2D, alpha: number, time: number): void {
+  renderEnemies(
+    ctx: CanvasRenderingContext2D, alpha: number, time: number,
+    camX: number, camY: number, vpW: number, vpH: number,
+  ): void {
     const b = this.b;
     if (!b) return;
     this.ensureEnemySprites();
@@ -131,6 +143,7 @@ export class ReplicaView {
         y = p[prevI + 3] + (y - p[prevI + 3]) * alpha;
         rot = lerpAngle(p[prevI + 4] / 100, rot, alpha);
       }
+      if (!isVisible(x, y, camX, camY, vpW, vpH)) continue;
       const sprite = this.sprites.get(kind)!;
       const scale = isBossKind(kind) ? 1 + Math.sin(time * 4) * 0.04 : 1;
       drawSprite(ctx, sprite, x, y, rot, scale);
@@ -140,7 +153,10 @@ export class ReplicaView {
     }
   }
 
-  renderPlayerShots(ctx: CanvasRenderingContext2D, alpha: number): void {
+  renderPlayerShots(
+    ctx: CanvasRenderingContext2D, alpha: number,
+    camX: number, camY: number, vpW: number, vpH: number,
+  ): void {
     const b = this.b;
     if (!b) return;
     if (!this.bolt) {
@@ -150,6 +166,7 @@ export class ReplicaView {
     const arr = b.snap.pshots;
     for (let i = 0; i < arr.length; i += STRIDE.pshot) {
       const [x, y] = this.pairPos(arr, i, 1, this.a?.pshots, this.a?.snap.pshots, STRIDE.pshot, alpha);
+      if (!isVisible(x, y, camX, camY, vpW, vpH)) continue;
       const ang = arr[i + 3] / 100;
       drawSprite(ctx, arr[i + 4] === 1 ? this.boltCrit! : this.bolt!, x, y, ang);
     }

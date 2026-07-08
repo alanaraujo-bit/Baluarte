@@ -1,3 +1,4 @@
+import { isVisible } from '../core/culling';
 import { Pool, swapRemove } from '../core/pool';
 import { chance, clamp, damp, dist2, len, rand, randInt, TAU } from '../core/utils';
 import {
@@ -874,10 +875,10 @@ export class Enemies {
     this.pendingAoe.push({ x, y, r, dmg, owner });
   }
 
-  render(ctx: CanvasRenderingContext2D, time: number): void {
+  render(ctx: CanvasRenderingContext2D, time: number, camX: number, camY: number, vpW: number, vpH: number): void {
     this.ensureSprites();
     for (const e of this.list) {
-      if (e.dead) continue;
+      if (e.dead || !isVisible(e.x, e.y, camX, camY, vpW, vpH)) continue;
       const sprite = this.sprites.get(e.kind)!;
       const scale = isBossKind(e.kind) ? 1 + Math.sin(time * 4) * 0.04 : 1;
       drawSprite(ctx, sprite, e.x, e.y, e.rot, scale);

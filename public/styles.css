@@ -584,6 +584,91 @@ html, body {
   box-shadow: 0 0 8px var(--cyan-dim);
 }
 
+/* ————— configurações: categorias, slider, segmentos ————— */
+
+.settings-cat {
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font-family: var(--font);
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.12s ease;
+}
+.settings-cat:active { transform: scale(0.98); }
+
+.graphics-adv-heading {
+  margin: 22px 0 10px;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  color: var(--cyan);
+  text-align: left;
+}
+.preset-custom-note { margin-top: 10px; }
+
+.slider-row { display: flex; flex-direction: column; gap: 10px; padding: 13px 16px; }
+.slider-row-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; }
+.slider-row-value { color: var(--cyan); font-weight: 800; }
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(20, 28, 52, 0.7);
+  outline: none;
+  cursor: pointer;
+}
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan-dim);
+  cursor: pointer;
+}
+.slider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan-dim);
+  cursor: pointer;
+}
+
+.segment-row { display: flex; flex-direction: column; gap: 8px; padding: 13px 16px; }
+.segment-tabs {
+  margin: 0;
+  padding: 0;
+  overflow-x: visible;
+  flex-wrap: wrap;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+/* ————— contador de FPS (diagnóstico, opt-in) ————— */
+
+.fps-counter {
+  position: absolute;
+  bottom: calc(var(--safe-bottom) + 10px);
+  left: 12px;
+  padding: 4px 9px;
+  border-radius: 8px;
+  background: rgba(6, 10, 24, 0.72);
+  border: 1px solid var(--panel-line);
+  color: var(--green);
+  font-family: var(--font);
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  display: none;
+  pointer-events: none;
+}
+.fps-counter.on { display: block; }
+
 /* ————— dialog ————— */
 
 .dialog { padding: 22px; max-width: 320px; }

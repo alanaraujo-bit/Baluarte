@@ -47,7 +47,7 @@ const AIM_RANGE = 500;
  */
 export class CoopScene implements Scene {
   private readonly replica = new ReplicaView();
-  private readonly particles = new Particles();
+  readonly particles = new Particles();
   private readonly floaters = new Floaters();
   private readonly hud = new Hud();
   private readonly bg = new Background();
@@ -89,7 +89,8 @@ export class CoopScene implements Scene {
     this.remote.slot = deps.localSlot === 0 ? 1 : 0;
     this.remote.shipColor = '#b45cff';
     this.deathDot = glowDot(10, '#9ff2ff');
-    this.particles.quality = deps.save.data.settings.lowFx ? 0.45 : 1;
+    this.particles.quality = deps.save.data.settings.graphics.particleQuality;
+    this.floaters.setDensity(deps.save.data.settings.graphics.entityDensity);
 
     deps.socket.onMessage = (msg) => this.onMessage(msg);
     deps.socket.onClose = (code, reason) => {
@@ -320,7 +321,13 @@ export class CoopScene implements Scene {
   }
 
   private shake(amount: number): void {
+    if (!this.deps.save.data.settings.graphics.screenShake) return;
     this.trauma = Math.min(1, this.trauma + amount / 100);
+  }
+
+  /** Setting de gráficos (densidade de entidades) — inimigos/gemas são do servidor (autoritativo), só os floaters cosméticos escalam aqui. */
+  applyGraphicsDensity(mul: number): void {
+    this.floaters.setDensity(mul);
   }
 
   // ————— frame —————
@@ -459,26 +466,27 @@ export class CoopScene implements Scene {
     const time = this.deps.game.time;
     const alpha = this.interpAlpha();
     const snap = this.currSnap;
+    const gfx = this.deps.save.data.settings.graphics;
 
     const s = this.trauma * this.trauma;
     const sx = (Math.random() * 2 - 1) * 13 * s;
     const sy = (Math.random() * 2 - 1) * 13 * s;
 
-    this.bg.render(ctx, this.camX - w / 2 + sx, this.camY - h / 2 + sy, w, h, time);
+    this.bg.render(ctx, this.camX - w / 2 + sx, this.camY - h / 2 + sy, w, h, time, gfx.background);
 
     ctx.save();
     ctx.translate(w / 2 - this.camX + sx, h / 2 - this.camY + sy);
-    this.replica.renderPickups(ctx, alpha, time);
-    this.replica.renderEnemyShots(ctx, alpha, time);
-    this.replica.renderEnemies(ctx, alpha, time);
+    this.replica.renderPickups(ctx, alpha, time, this.camX, this.camY, w, h);
+    this.replica.renderEnemyShots(ctx, alpha, time, this.camX, this.camY, w, h);
+    this.replica.renderEnemies(ctx, alpha, time, this.camX, this.camY, w, h);
     this.remote.render(ctx, time);
     this.local.render(ctx, time);
-    this.replica.renderPlayerShots(ctx, alpha);
+    this.replica.renderPlayerShots(ctx, alpha, this.camX, this.camY, w, h);
     this.particles.render(ctx);
     this.floaters.render(ctx);
     ctx.restore();
 
-    this.bg.renderVignette(ctx, w, h);
+    if (gfx.vignette) this.bg.renderVignette(ctx, w, h);
 
     if (this.sectorFlash > 0) {
       ctx.globalAlpha = Math.pow(this.sectorFlash, 1.6) * 0.5;
@@ -519,7 +527,7 @@ export class CoopScene implements Scene {
           }
         : null;
       hv.ping = Math.round(this.deps.socket.rttMs);
-      this.hud.render(ctx, hv, vp, time);
+      this.hud.render(ctx, hv, vp, time, gfx.glow);
     }
   }
 
@@ -549,8 +557,10 @@ export class CoopScene implements Scene {
     ctx.rotate(ang);
     ctx.globalAlpha = 0.85;
     ctx.fillStyle = color;
-    ctx.shadowColor = color;
-    ctx.shadowBlur = 8;
+    if (this.deps.save.data.settings.graphics.glow) {
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 8;
+    }
     ctx.beginPath();
     ctx.moveTo(10, 0);
     ctx.lineTo(-6, 6);

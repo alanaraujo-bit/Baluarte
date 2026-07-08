@@ -27,9 +27,16 @@ export class Floaters {
     x: 0, y: 0, vy: 0, life: 0, maxLife: 1, text: '', color: '#fff', size: 13, bold: false,
   }));
   private readonly active: Floater[] = [];
+  /** Cap efetivo, escalado pelo setting de densidade de entidades. */
+  private maxFloaters = MAX_FLOATERS;
+
+  /** Setting de gráficos (densidade de entidades). */
+  setDensity(mul: number): void {
+    this.maxFloaters = Math.round(MAX_FLOATERS * mul);
+  }
 
   spawn(x: number, y: number, text: string, o: FloaterOptions = {}): void {
-    if (this.active.length >= MAX_FLOATERS) return;
+    if (this.active.length >= this.maxFloaters) return;
     const f = this.pool.obtain();
     f.x = x + (Math.random() - 0.5) * 10;
     f.y = y;

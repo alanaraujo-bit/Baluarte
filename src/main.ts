@@ -28,19 +28,52 @@ sync.init(save);
 const audio = new AudioEngine();
 const music = new Music(audio);
 
+let run: GameScene | null = null;
+/** Index into CAMPAIGN of the level currently playing, or null outside campaign. */
+let campaignIndex: number | null = null;
+const menuScene = new MenuScene(game, save);
+
+let fpsTimer: ReturnType<typeof setInterval> | null = null;
+
+/**
+ * Single wiring point for every live consumer of the graphics settings —
+ * called on every settings change AND right after each new run/match starts,
+ * so a mid-match tweak (or a preset picked before the scene even existed)
+ * always takes effect immediately.
+ */
+function applyGraphicsSettings(): void {
+  const g = save.data.settings.graphics;
+  vp.setResolutionScale(g.resolutionScale);
+  game.fpsCap = g.fpsCap;
+
+  if (g.fpsCounter && fpsTimer === null) {
+    ui.showFpsCounter();
+    fpsTimer = setInterval(() => ui.setFps(game.fps), 500);
+  } else if (!g.fpsCounter && fpsTimer !== null) {
+    clearInterval(fpsTimer);
+    fpsTimer = null;
+    ui.hideFpsCounter();
+  }
+
+  menuScene.particles.quality = g.particleQuality;
+  if (run) {
+    run.particles.quality = g.particleQuality;
+    run.applyGraphicsDensity(g.entityDensity);
+  }
+  if (coopScene) {
+    coopScene.particles.quality = g.particleQuality;
+    coopScene.applyGraphicsDensity(g.entityDensity);
+  }
+}
+
 function applySettings(): void {
   const cfg = save.data.settings;
   audio.sfxOn = cfg.sfx;
   audio.musicOn = cfg.music;
   audio.hapticsOn = cfg.haptics;
   music.sync();
-  if (run) run.particles.quality = cfg.lowFx ? 0.45 : 1;
+  applyGraphicsSettings();
 }
-
-let run: GameScene | null = null;
-/** Index into CAMPAIGN of the level currently playing, or null outside campaign. */
-let campaignIndex: number | null = null;
-const menuScene = new MenuScene(game);
 
 // ————— co-op session state —————
 
@@ -189,6 +222,7 @@ function coopStartMatch(): void {
     },
     onDisconnect: () => coopBackToMenu(S.coopDisconnected),
   });
+  applyGraphicsSettings();
   game.setScene(coopScene);
   ui.hideAll();
   ui.showGameOverlay();
@@ -234,6 +268,7 @@ const actions: UiActions = {
       game, save, ui, audio, music,
       onRunEnd: (result) => sync.submitRun(result),
     });
+    applyGraphicsSettings();
     game.setScene(run);
     ui.hideAll();
     ui.showGameOverlay();
@@ -248,6 +283,7 @@ const actions: UiActions = {
       game, save, ui, audio, music,
       campaign: { level: CAMPAIGN[levelIndex], index: levelIndex },
     });
+    applyGraphicsSettings();
     game.setScene(run);
     ui.hideAll();
     ui.showGameOverlay();
@@ -257,6 +293,7 @@ const actions: UiActions = {
       game, save, ui, audio, music,
       tutorial: { onComplete: endTutorial },
     });
+    applyGraphicsSettings();
     game.setScene(run);
     ui.hideAll();
     ui.showGameOverlay();

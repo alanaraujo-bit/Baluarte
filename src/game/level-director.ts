@@ -26,6 +26,8 @@ const BASE_MAX_ALIVE = 14;
 export class LevelDirector implements Director {
   wave: number;
   cleared = false;
+  /** Player's graphics setting (entity density). */
+  densityMul = 1;
 
   private t = 0;
   private spawnT = 1;
@@ -132,7 +134,7 @@ export class LevelDirector implements Director {
   }
 
   private spawnLoop(dt: number, world: World): void {
-    const maxAlive = Math.round(BASE_MAX_ALIVE * (this.level.modifier?.denseSwarm ?? 1));
+    const maxAlive = Math.round(BASE_MAX_ALIVE * (this.level.modifier?.denseSwarm ?? 1) * this.densityMul);
     const interval = BASE_SPAWN_INTERVAL / (this.level.modifier?.relentless ?? 1);
     this.spawnT -= dt;
     if (this.spawnT <= 0 && world.enemies.list.length < maxAlive) {

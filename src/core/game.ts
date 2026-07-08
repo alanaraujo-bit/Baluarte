@@ -18,11 +18,17 @@ export class Game {
   /** Scaled game time in seconds since boot. */
   time = 0;
   timeScale = 1;
+  /** Setting gráfico de limite de quadros. 0 = sem limite. */
+  fpsCap: 0 | 30 | 60 = 0;
+  /** Quadros por segundo medidos, atualizado ~2x/s (só pro contador de FPS). */
+  fps = 0;
 
   private scene: Scene | null = null;
   private last = -1;
   private hitStopT = 0;
   private hitStopScale = 0.08;
+  private fpsFrames = 0;
+  private fpsAccum = 0;
 
   constructor(
     readonly canvas: HTMLCanvasElement,
@@ -52,9 +58,22 @@ export class Game {
   private tick = (now: number): void => {
     requestAnimationFrame(this.tick);
     if (this.last < 0) this.last = now;
+    const elapsed = now - this.last;
+    // Limite de FPS: pula o frame inteiro (update + colisão + render) se
+    // chegou cedo demais — é aí que está o custo de CPU de verdade, não dá
+    // pra "renderizar mais devagar" dentro do mesmo frame do rAF.
+    if (this.fpsCap > 0 && elapsed < 1000 / this.fpsCap - 0.5) return;
     // Clamp to avoid physics explosions after tab switches / long frames.
-    const rawDt = Math.min((now - this.last) / 1000, 1 / 20);
+    const rawDt = Math.min(elapsed / 1000, 1 / 20);
     this.last = now;
+
+    this.fpsFrames++;
+    this.fpsAccum += elapsed;
+    if (this.fpsAccum >= 500) {
+      this.fps = Math.round((this.fpsFrames * 1000) / this.fpsAccum);
+      this.fpsFrames = 0;
+      this.fpsAccum = 0;
+    }
 
     let ts = this.timeScale;
     if (this.hitStopT > 0) {

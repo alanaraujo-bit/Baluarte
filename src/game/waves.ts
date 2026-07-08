@@ -23,6 +23,8 @@ export interface Director {
   /** The boss currently in play, for GameScene's HUD/defeat banner. Defaults
    * to WaveDirector's sector lookup when absent. */
   bossInfo?(): SectorDef['boss'] | null;
+  /** Graphics setting (entity density), client-only. Absent = TutorialDirector, unaffected. */
+  densityMul?: number;
 }
 
 /**
@@ -40,6 +42,13 @@ export interface WaveBudget {
 export class WaveDirector implements Director {
   wave = 1;
   bossActive = false;
+  /**
+   * Player's graphics setting (entity density), client-only. The shared
+   * WaveDirector used server-side by sim.ts never sets this, so it stays 1
+   * there — co-op enemy counts are never affected by any one player's local
+   * performance setting.
+   */
+  densityMul = 1;
 
   private waveT = 0;
   private spawnT = 1.1;
@@ -87,7 +96,7 @@ export class WaveDirector implements Director {
     }
 
     this.spawnT -= dt;
-    if (this.spawnT <= 0 && world.enemies.list.length < BAL.wave.maxAlive(this.wave) * this.maxAliveMul) {
+    if (this.spawnT <= 0 && world.enemies.list.length < BAL.wave.maxAlive(this.wave) * this.maxAliveMul * this.densityMul) {
       this.spawnT = BAL.wave.spawnInterval(this.wave);
       const batch = Math.max(1, Math.round((1 + Math.floor(this.wave / 6)) * this.batchMul));
       for (let i = 0; i < batch; i++) this.spawnOne(world);

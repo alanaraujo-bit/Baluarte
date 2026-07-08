@@ -1,3 +1,4 @@
+import type { BackgroundQuality } from '../core/save';
 import { hash2, TAU } from '../core/utils';
 import { glowDot, softDot, drawSprite, type Sprite } from './sprites';
 
@@ -96,7 +97,10 @@ export class Background {
     return ctx.createPattern(c, 'repeat');
   }
 
-  render(ctx: CanvasRenderingContext2D, camX: number, camY: number, w: number, h: number, time: number): void {
+  render(
+    ctx: CanvasRenderingContext2D, camX: number, camY: number, w: number, h: number, time: number,
+    quality: BackgroundQuality = 'full',
+  ): void {
     const t = this.theme;
 
     // Base
@@ -107,19 +111,23 @@ export class Background {
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);
 
-    // Nebula blobs, slow parallax
-    this.layerCells(ctx, camX, camY, w, h, NEBULA_CELL, 0.35, (sx, sy, r1, r2) => {
-      const spr = this.nebulas[Math.floor(r1 * this.nebulas.length)];
-      const pulse = 1 + Math.sin(time * 0.3 + r2 * TAU) * 0.08;
-      drawSprite(ctx, spr, sx, sy, 0, (1.4 + r2 * 1.6) * pulse, 0.35 + r2 * 0.25);
-    });
+    // Nebula blobs, slow parallax — the most expensive layer, skipped below Full.
+    if (quality === 'full') {
+      this.layerCells(ctx, camX, camY, w, h, NEBULA_CELL, 0.35, (sx, sy, r1, r2) => {
+        const spr = this.nebulas[Math.floor(r1 * this.nebulas.length)];
+        const pulse = 1 + Math.sin(time * 0.3 + r2 * TAU) * 0.08;
+        drawSprite(ctx, spr, sx, sy, 0, (1.4 + r2 * 1.6) * pulse, 0.35 + r2 * 0.25);
+      });
+    }
 
     // Stars, medium parallax
-    this.layerCells(ctx, camX, camY, w, h, STAR_CELL, 0.6, (sx, sy, r1, r2) => {
-      if (r1 > 0.72) return; // sparse
-      const tw = 0.4 + 0.6 * Math.abs(Math.sin(time * (0.5 + r2) + r1 * TAU));
-      drawSprite(ctx, this.star, sx, sy, 0, 0.5 + r2 * 0.9, tw * 0.8);
-    });
+    if (quality !== 'off') {
+      this.layerCells(ctx, camX, camY, w, h, STAR_CELL, 0.6, (sx, sy, r1, r2) => {
+        if (r1 > 0.72) return; // sparse
+        const tw = 0.4 + 0.6 * Math.abs(Math.sin(time * (0.5 + r2) + r1 * TAU));
+        drawSprite(ctx, this.star, sx, sy, 0, 0.5 + r2 * 0.9, tw * 0.8);
+      });
+    }
     ctx.globalAlpha = 1;
 
     // Grid, 1:1 with world (grounds the sense of movement)

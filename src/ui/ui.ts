@@ -1,4 +1,4 @@
-import type { SaveSystem } from '../core/save';
+import { applyPreset, type BackgroundQuality, type FpsCap, type GraphicsPreset, type SaveSystem } from '../core/save';
 import { fmtTime } from '../core/utils';
 import type { AudioEngine } from '../audio/audio';
 import { S } from '../i18n/strings';
@@ -96,6 +96,7 @@ export class UI {
   private readonly root: HTMLElement;
   private readonly screens = new Map<string, HTMLElement>();
   private pauseBtn: HTMLElement | null = null;
+  private fpsCounterEl: HTMLElement | null = null;
   private tutorial: HTMLElement | null = null;
   private tutBubble: HTMLElement | null = null;
   private tutBubbleTitle: HTMLElement | null = null;
@@ -534,17 +535,9 @@ export class UI {
 
     s.appendChild(el('h2', 'heading', S.settings));
 
-    const cfg = this.save.data.settings;
     const list = el('div', 'col list');
-    const toggles: Array<[string, () => boolean, (v: boolean) => void]> = [
-      [S.sound, () => cfg.sfx, (v) => { cfg.sfx = v; }],
-      [S.music, () => cfg.music, (v) => { cfg.music = v; }],
-      [S.haptics, () => cfg.haptics, (v) => { cfg.haptics = v; }],
-      [S.lowFx, () => cfg.lowFx, (v) => { cfg.lowFx = v; }],
-    ];
-    for (const [label, get, set] of toggles) {
-      list.appendChild(this.toggleRow(label, get, set));
-    }
+    list.appendChild(this.settingsCategoryRow(S.audioSettings, S.audioSettingsDesc, () => this.showAudioSettings()));
+    list.appendChild(this.settingsCategoryRow(S.graphicsSettings, S.graphicsSettingsDesc, () => this.showGraphicsSettings()));
     s.appendChild(list);
 
     const info = el('div', 'subheading stats-line',
@@ -565,7 +558,92 @@ export class UI {
     this.open('settings');
   }
 
-  private toggleRow(label: string, get: () => boolean, set: (v: boolean) => void): HTMLElement {
+  showAudioSettings(): void {
+    this.hideAll();
+    const s = this.screen('audiosettings');
+
+    const header = el('div', 'row header');
+    header.appendChild(this.btn(`‹ ${S.back}`, 'ghost small', () => this.showSettings()));
+    s.appendChild(header);
+
+    s.appendChild(el('h2', 'heading', S.audioSettings));
+
+    const cfg = this.save.data.settings;
+    const list = el('div', 'col list');
+    list.appendChild(this.toggleRow(S.sound, () => cfg.sfx, (v) => { cfg.sfx = v; }));
+    list.appendChild(this.toggleRow(S.music, () => cfg.music, (v) => { cfg.music = v; }));
+    list.appendChild(this.toggleRow(S.haptics, () => cfg.haptics, (v) => { cfg.haptics = v; }));
+    s.appendChild(list);
+
+    this.open('audiosettings');
+  }
+
+  showGraphicsSettings(): void {
+    this.hideAll();
+    const s = this.screen('graphicssettings');
+    const g = this.save.data.settings.graphics;
+    const rerender = (): void => this.showGraphicsSettings();
+    /** Any manual tweak in "Avançado" drops the active preset to Personalizado. */
+    const toCustom = (): void => { g.preset = 'custom'; };
+
+    const header = el('div', 'row header');
+    header.appendChild(this.btn(`‹ ${S.back}`, 'ghost small', () => this.showSettings()));
+    s.appendChild(header);
+
+    s.appendChild(el('h2', 'heading', S.graphicsSettings));
+
+    const presets: Array<[Exclude<GraphicsPreset, 'custom'>, string]> = [
+      ['low', S.presetLow], ['medium', S.presetMedium], ['high', S.presetHigh], ['ultra', S.presetUltra],
+    ];
+    s.appendChild(this.segmentRow(S.graphicsSettings, presets, () => g.preset as Exclude<GraphicsPreset, 'custom'>, (id) => {
+      this.save.data.settings.graphics = applyPreset(id);
+    }, rerender));
+    if (g.preset === 'custom') {
+      s.appendChild(el('div', 'subheading preset-custom-note', S.presetCustom));
+    }
+
+    s.appendChild(el('h3', 'subheading graphics-adv-heading', S.graphicsAdvanced));
+    const list = el('div', 'scroll list');
+    list.appendChild(this.sliderRow(S.resolutionScale, () => g.resolutionScale, (v) => { toCustom(); g.resolutionScale = v; },
+      { min: 0.5, max: 1, step: 0.05, format: (v) => `${Math.round(v * 100)}%` }, rerender));
+    list.appendChild(this.sliderRow(S.entityDensity, () => g.entityDensity, (v) => { toCustom(); g.entityDensity = v; },
+      { min: 0.4, max: 1, step: 0.1, format: (v) => `${Math.round(v * 100)}%` }, rerender));
+    list.appendChild(this.sliderRow(S.particleQuality, () => g.particleQuality, (v) => { toCustom(); g.particleQuality = v; },
+      { min: 0, max: 1, step: 0.1, format: (v) => `${Math.round(v * 100)}%` }, rerender));
+    list.appendChild(this.toggleRow(S.screenShake, () => g.screenShake, (v) => { toCustom(); g.screenShake = v; }, rerender));
+    list.appendChild(this.toggleRow(S.glowFx, () => g.glow, (v) => { toCustom(); g.glow = v; }, rerender));
+    const backgrounds: Array<[BackgroundQuality, string]> = [
+      ['off', S.backgroundOff], ['low', S.backgroundLow], ['full', S.backgroundFull],
+    ];
+    list.appendChild(this.segmentRow(S.backgroundFx, backgrounds, () => g.background, (v) => {
+      toCustom(); g.background = v;
+    }, rerender));
+    list.appendChild(this.toggleRow(S.vignetteFx, () => g.vignette, (v) => { toCustom(); g.vignette = v; }, rerender));
+    list.appendChild(this.toggleRow(S.hitStopFx, () => g.hitStop, (v) => { toCustom(); g.hitStop = v; }, rerender));
+    const fpsCaps: Array<[FpsCap, string]> = [[30, '30'], [60, '60'], [0, S.fpsUncapped]];
+    list.appendChild(this.segmentRow(S.fpsCapLabel, fpsCaps, () => g.fpsCap, (v) => { toCustom(); g.fpsCap = v; }, rerender));
+    list.appendChild(this.toggleRow(S.fpsCounterLabel, () => g.fpsCounter, (v) => { toCustom(); g.fpsCounter = v; }, rerender));
+    s.appendChild(list);
+
+    this.open('graphicssettings');
+  }
+
+  /** Chevron row that opens a settings sub-screen (Áudio, Gráficos, ...). */
+  private settingsCategoryRow(label: string, desc: string, onTap: () => void): HTMLElement {
+    const row = el('button', 'panel toggle-row settings-cat');
+    const body = el('div', 'grow');
+    body.appendChild(el('div', 'item-name', label));
+    body.appendChild(el('div', 'item-desc', desc));
+    row.appendChild(body);
+    row.appendChild(el('span', 'mode-chevron', '›'));
+    row.addEventListener('pointerdown', () => this.audio.play('tap'));
+    row.addEventListener('click', onTap);
+    return row;
+  }
+
+  private toggleRow(
+    label: string, get: () => boolean, set: (v: boolean) => void, onChanged?: () => void,
+  ): HTMLElement {
     const row = el('div', 'panel toggle-row');
     row.appendChild(el('span', 'grow item-name', label));
     const toggle = el('button', `toggle${get() ? ' on' : ''}`);
@@ -577,9 +655,86 @@ export class UI {
       this.save.persist();
       this.actions.applySettings();
       this.audio.play('tap');
+      onChanged?.();
     });
     row.appendChild(toggle);
     return row;
+  }
+
+  /** Slider row for a graded 0–1-ish numeric setting (resolution, density, particle quality). */
+  private sliderRow(
+    label: string, get: () => number, set: (v: number) => void,
+    opts: { min: number; max: number; step: number; format: (v: number) => string },
+    onCommit: () => void,
+  ): HTMLElement {
+    const row = el('div', 'panel slider-row');
+    const head = el('div', 'slider-row-head');
+    head.appendChild(el('span', 'item-name', label));
+    const value = el('span', 'slider-row-value', opts.format(get()));
+    head.appendChild(value);
+    row.appendChild(head);
+
+    const input = el('input', 'slider');
+    input.type = 'range';
+    input.min = String(opts.min);
+    input.max = String(opts.max);
+    input.step = String(opts.step);
+    input.value = String(get());
+    input.addEventListener('input', () => {
+      const v = Number(input.value);
+      set(v);
+      value.textContent = opts.format(v);
+      this.save.persist();
+      this.actions.applySettings();
+    });
+    input.addEventListener('change', () => {
+      this.audio.play('tap');
+      onCommit();
+    });
+    row.appendChild(input);
+    return row;
+  }
+
+  /** Pill-tab row for a small fixed set of options (preset, background quality, FPS cap). */
+  private segmentRow<T>(
+    label: string, options: ReadonlyArray<[T, string]>, get: () => T, set: (v: T) => void,
+    onCommit: () => void,
+  ): HTMLElement {
+    const row = el('div', 'panel segment-row');
+    row.appendChild(el('span', 'item-name', label));
+    const tabs = el('div', 'row codex-tabs segment-tabs');
+    for (const [id, text] of options) {
+      const b = el('button', `tab${get() === id ? ' active' : ''}`, text);
+      b.addEventListener('pointerdown', () => this.audio.play('tap'));
+      b.addEventListener('click', () => {
+        if (get() === id) return;
+        set(id);
+        this.save.persist();
+        this.actions.applySettings();
+        onCommit();
+      });
+      tabs.appendChild(b);
+    }
+    row.appendChild(tabs);
+    return row;
+  }
+
+  // ————— contador de FPS (diagnóstico, sobrevive a troca de tela) —————
+
+  showFpsCounter(): void {
+    if (!this.fpsCounterEl) {
+      this.fpsCounterEl = el('div', 'fps-counter', '--');
+      this.root.appendChild(this.fpsCounterEl);
+    }
+    this.fpsCounterEl.classList.add('on');
+  }
+
+  hideFpsCounter(): void {
+    this.fpsCounterEl?.classList.remove('on');
+  }
+
+  setFps(fps: number): void {
+    if (this.fpsCounterEl) this.fpsCounterEl.textContent = `${fps} FPS`;
   }
 
   // ————— confirm dialog —————

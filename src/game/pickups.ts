@@ -1,3 +1,4 @@
+import { isVisible } from '../core/culling';
 import { Pool, swapRemove } from '../core/pool';
 import { dist2, len, rand, TAU } from '../core/utils';
 import { drawSprite, glowDot, shapeSprite, GEM_POINTS, type ShapeOptions, type Sprite } from '../fx/sprites';
@@ -66,6 +67,13 @@ export class Pickups {
   private heart: Sprite | null = null;
   private sparkle: Sprite | null = null;
   private gemCount = 0;
+  /** Cap efetivo, escalado pelo setting de densidade de entidades. */
+  private maxGems = MAX_GEMS;
+
+  /** Setting de gráficos (densidade de entidades). MAX_GEMS continua fixo pro texto do códex. */
+  setDensity(mul: number): void {
+    this.maxGems = Math.round(MAX_GEMS * mul);
+  }
 
   spawnGems(x: number, y: number, count: number): void {
     for (let i = 0; i < count; i++) this.spawn('gem', x, y, 1);
@@ -81,7 +89,7 @@ export class Pickups {
 
   private spawn(kind: PickupKind, x: number, y: number, value: number): void {
     if (kind === 'gem') {
-      if (this.gemCount >= MAX_GEMS) {
+      if (this.gemCount >= this.maxGems) {
         // Auto-deliver the oldest gem so nothing is ever lost to the cap.
         const oldest = this.active.find((p) => p.kind === 'gem' && !p.vacuum);
         if (oldest) oldest.vacuum = true;
@@ -180,9 +188,10 @@ export class Pickups {
     this.sparkle = glowDot(4, '#c5ffe2');
   }
 
-  render(ctx: CanvasRenderingContext2D, time: number): void {
+  render(ctx: CanvasRenderingContext2D, time: number, camX: number, camY: number, vpW: number, vpH: number): void {
     this.ensureSprites();
     for (const p of this.active) {
+      if (!isVisible(p.x, p.y, camX, camY, vpW, vpH)) continue;
       const bob = Math.sin(time * 3.4 + p.t) * 2.5;
       const pulse = 1 + Math.sin(time * 5 + p.t) * 0.1;
       const sprite = p.kind === 'gem' ? this.gem! : p.kind === 'coin' ? this.coin! : this.heart!;

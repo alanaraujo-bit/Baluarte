@@ -1,4 +1,4 @@
-import type { SaveData, Settings } from '../core/save.js';
+import { applyPreset, type BackgroundQuality, type FpsCap, type GraphicsPreset, type GraphicsSettings, type SaveData, type Settings } from '../core/save.js';
 import { META_DEFS } from '../game/meta.js';
 
 /**
@@ -137,6 +137,38 @@ function int(v: unknown, max: number): number {
   return Math.floor(num(v, max));
 }
 
+function clampNum(v: unknown, lo: number, hi: number, fallback: number): number {
+  const n = typeof v === 'number' && Number.isFinite(v) ? v : fallback;
+  return Math.min(Math.max(lo, n), hi);
+}
+
+function oneOf<T>(v: unknown, allowed: readonly T[], fallback: T): T {
+  return (allowed as readonly unknown[]).includes(v) ? (v as T) : fallback;
+}
+
+const GRAPHICS_PRESET_IDS: readonly GraphicsPreset[] = ['low', 'medium', 'high', 'ultra', 'custom'];
+const BACKGROUND_QUALITY_IDS: readonly BackgroundQuality[] = ['off', 'low', 'full'];
+const FPS_CAPS: readonly FpsCap[] = [0, 30, 60];
+
+/** Untrusted payload from the network — never trust it wholesale, clamp field by field. */
+function clampGraphics(g: unknown): GraphicsSettings {
+  const o = (g && typeof g === 'object' ? g : {}) as Partial<GraphicsSettings>;
+  const def = applyPreset('medium'); // neutral fallback; device auto-detection never runs server-side
+  return {
+    preset: oneOf(o.preset, GRAPHICS_PRESET_IDS, def.preset),
+    resolutionScale: clampNum(o.resolutionScale, 0.5, 1, def.resolutionScale),
+    entityDensity: clampNum(o.entityDensity, 0.4, 1, def.entityDensity),
+    particleQuality: clampNum(o.particleQuality, 0, 1, def.particleQuality),
+    screenShake: o.screenShake !== false,
+    glow: o.glow !== false,
+    background: oneOf(o.background, BACKGROUND_QUALITY_IDS, def.background),
+    vignette: o.vignette !== false,
+    hitStop: o.hitStop !== false,
+    fpsCap: oneOf(o.fpsCap, FPS_CAPS, def.fpsCap),
+    fpsCounter: o.fpsCounter === true,
+  };
+}
+
 /** Coerce an untrusted save into a well-formed one (never throws). */
 export function clampCloudSave(raw: Partial<CloudSave> | null | undefined): CloudSave {
   const r = raw ?? {};
@@ -150,7 +182,10 @@ export function clampCloudSave(raw: Partial<CloudSave> | null | undefined): Clou
   const s = r.settings;
   const settings: Settings | null =
     s && typeof s === 'object'
-      ? { sfx: s.sfx !== false, music: s.music !== false, haptics: s.haptics !== false, lowFx: s.lowFx === true }
+      ? {
+          sfx: s.sfx !== false, music: s.music !== false, haptics: s.haptics !== false, lowFx: s.lowFx === true,
+          graphics: clampGraphics(s.graphics),
+        }
       : null;
   return {
     coins: int(r.coins, SAVE_LIMITS.coins),
