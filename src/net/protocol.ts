@@ -169,6 +169,24 @@ function clampGraphics(g: unknown): GraphicsSettings {
   };
 }
 
+/**
+ * Coerce an untrusted Settings blob into a well-formed one (never throws).
+ * "Untrusted" includes rows written by an older server version — e.g. any
+ * save persisted before `graphics` existed has `settings` present but
+ * missing that field entirely, which used to reach the client as-is and
+ * crash the render loop (`settings.graphics.background` on `undefined`).
+ * This is the single point every CloudSave.settings must pass through,
+ * both on write (clampCloudSave) and on read (db.ts's cloudSaveFromRow).
+ */
+export function clampSettings(raw: unknown): Settings | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const s = raw as Partial<Settings>;
+  return {
+    sfx: s.sfx !== false, music: s.music !== false, haptics: s.haptics !== false, lowFx: s.lowFx === true,
+    graphics: clampGraphics(s.graphics),
+  };
+}
+
 /** Coerce an untrusted save into a well-formed one (never throws). */
 export function clampCloudSave(raw: Partial<CloudSave> | null | undefined): CloudSave {
   const r = raw ?? {};
@@ -179,14 +197,7 @@ export function clampCloudSave(raw: Partial<CloudSave> | null | undefined): Clou
       if (lvl > 0) meta[def.id] = lvl;
     }
   }
-  const s = r.settings;
-  const settings: Settings | null =
-    s && typeof s === 'object'
-      ? {
-          sfx: s.sfx !== false, music: s.music !== false, haptics: s.haptics !== false, lowFx: s.lowFx === true,
-          graphics: clampGraphics(s.graphics),
-        }
-      : null;
+  const settings = clampSettings(r.settings);
   return {
     coins: int(r.coins, SAVE_LIMITS.coins),
     meta,
@@ -262,6 +273,10 @@ export function applyCloudToSave(d: SaveData, c: CloudSave): void {
   d.totalKills = c.totalKills;
   d.totalTime = c.totalTime;
   d.tutorialDone = d.tutorialDone || c.tutorialDone;
-  if (c.settings) d.settings = { ...c.settings };
+  // `d.settings` is always fully-formed by this point (SaveSystem.load()
+  // guarantees it); merge rather than replace so a cloud payload that is
+  // somehow still missing a field (an older client, a bug) can never blank
+  // out a value the player already has locally.
+  if (c.settings) d.settings = { ...d.settings, ...c.settings, graphics: c.settings.graphics ?? d.settings.graphics };
   d.campaignLevel = c.campaignLevel;
 }

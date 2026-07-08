@@ -1,5 +1,5 @@
 import { Pool } from 'pg';
-import type { CloudSave } from '../../src/net/protocol.js';
+import { clampSettings, type CloudSave } from '../../src/net/protocol.js';
 
 /** Pool or transaction client — both expose query(). */
 export interface Queryable {
@@ -56,7 +56,10 @@ export function cloudSaveFromRow(row: SaveRow): CloudSave {
     totalKills: Number(row.total_kills),
     totalTime: row.total_time,
     tutorialDone: row.tutorial_done,
-    settings: row.settings ?? null,
+    // Rows written before `graphics` existed have `settings` present but
+    // missing that field — clamp on the way out so nothing downstream ever
+    // sees an incomplete Settings object (see clampSettings' doc comment).
+    settings: clampSettings(row.settings),
     campaignLevel: row.campaign_level,
   };
 }
