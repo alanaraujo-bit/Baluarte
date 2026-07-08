@@ -106,6 +106,7 @@ export class GameScene implements Scene, World {
         onBossWarn: (sector) => {
           this.deps.ui.banner(sector.boss.name.toUpperCase(), sector.boss.warnSub, true);
           this.audio.play('warn');
+          this.deps.music.setTheme(sector.music.bossMusic ?? sector.music);
           this.deps.music.intensity = 1;
         },
         onSector: (sector, number) => {
@@ -284,6 +285,9 @@ export class GameScene implements Scene, World {
     this.hitStop(0.4, 0.05);
     this.shake(42);
     const boss = sectorForWave(this.waves.wave).boss;
+    const sector = sectorForWave(this.waves.wave);
+    this.deps.music.setTheme(sector.music);
+    this.deps.music.intensity = Math.min(1, this.waves.wave / 12);
     this.deps.ui.banner(boss.defeatTitle, boss.defeatSub);
   }
 

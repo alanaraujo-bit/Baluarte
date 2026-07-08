@@ -232,12 +232,15 @@ export class CoopScene implements Scene {
         case 'bossWarn': {
           const sector = sectorForWave(this.currSnap?.wave ?? 1);
           this.deps.ui.banner(sector.boss.name.toUpperCase(), sector.boss.warnSub, true);
+          this.deps.music.setTheme(sector.music.bossMusic ?? sector.music);
           this.deps.music.intensity = 1;
           break;
         }
         case 'bossDown': {
           const sector = sectorForWave(this.currSnap?.wave ?? 1);
           this.deps.ui.banner(sector.boss.defeatTitle, sector.boss.defeatSub);
+          this.deps.music.setTheme(sector.music);
+          this.deps.music.intensity = Math.min(1, (this.currSnap?.wave ?? 1) / 12);
           this.shake(42);
           break;
         }

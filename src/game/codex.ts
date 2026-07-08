@@ -166,11 +166,48 @@ const ENEMY_LORE: Record<EnemyKind, EnemyLore> = {
     lore: 'O coração vivo da Colmeia. Não investe como o Colosso: ela tece espirais rotativas de orbes, fecha anéis ao redor da presa e chama as crias para lutarem por ela.',
     tactic: 'Três armas, três respostas: na espiral rotativa, ande em círculo acompanhando a rotação; nos anéis, atravesse pelos vãos antes que fechem; na invocação, elimine as crias antes que o enxame cresça. Abaixo de 35% de vida ela se enfurece — tudo acelera e a espiral ganha um braço extra.',
   },
+  glyph: {
+    name: 'Glifo',
+    tagline: 'Fragmento de dado que avança em zigue-zague magnético.',
+    lore: 'Um cursor vivo arrancado do Arquivo Magnético. Ele não caça em linha reta: desliza de lado como se fosse corrigido por trilhos invisíveis.',
+    tactic: 'O deslocamento lateral atrapalha tiros em linha e fecha ângulos estranhos. Mantenha espaço para que a mira automática possa rastrear a oscilação.',
+  },
+  needle: {
+    name: 'Agulha',
+    tagline: 'Atiradora de precisão que mantém distância e dispara descargas rápidas.',
+    lore: 'Uma lasca de railgun indexada pelo Arquivo. Ela orbita fora do seu alcance confortável e tenta perfurar a rota prevista da nave.',
+    tactic: 'Ela recua quando você aproxima demais. Quebre a distância em diagonal e não fique parado quando ouvir a descarga magnética.',
+  },
+  pylon: {
+    name: 'Pilar',
+    tagline: 'Torre móvel que desenha cruzes de projéteis no campo.',
+    lore: 'Um nó de processamento ambulante. Cada pulso abre uma pequena malha de fogo em quatro direções, como uma grade de segurança sendo escrita no chão.',
+    tactic: 'Os disparos saem em cruz a partir da direção do alvo. Desvie pelos quadrantes diagonais em vez de fugir reto para trás.',
+  },
+  mine: {
+    name: 'Mina Ímã',
+    tagline: 'Deriva até perto e estoura em oito orbes acelerados.',
+    lore: 'Um pacote de memória instável envolto por polos opostos. Quando se aproxima demais ou é destruído, toda a carga é expelida em anel.',
+    tactic: 'Não deixe acumular perto do chefe. Detone-a de longe e passe entre os oito orbes; de perto, o anel quase não abre espaço.',
+  },
+  monolith: {
+    name: 'Monólito',
+    tagline: 'Unidade pesada que puxa a nave com pulsos magnéticos.',
+    lore: 'Um bloco de armazenamento blindado, lento e quase imune a recuo. Seu campo tenta arrastar pilotos para dentro da massa de inimigos.',
+    tactic: 'Quando o anel aparecer, corrija o movimento para fora dele. Como outros pesados, pode soltar coração e vale priorizar se a arena estiver congestionada.',
+  },
+  archivist: {
+    name: 'Arquivista Magnético',
+    tagline: 'Chefe do Arquivo — controla grades, feixes e minas indexadas.',
+    lore: 'A entidade que cataloga cada rota de fuga. O Arquivista não ruge nem comanda uma colmeia: ele calcula, trava o espaço em padrões e semeia minas onde a nave tende a passar.',
+    tactic: 'Na grade, procure os vãos entre as rajadas rotativas; no feixe, mova-se lateralmente assim que ele começar a brilhar; na indexação, limpe as Minas Ímã antes que a próxima fase aperte a arena. Abaixo de 35% de vida ele adiciona projéteis e minas extras.',
+  },
 };
 
 const ENEMY_ORDER: readonly EnemyKind[] = [
   'drone', 'dart', 'splitter', 'mini', 'wasp', 'tank', 'boss',
   'larva', 'spore', 'stinger', 'weaver', 'beetle', 'queen',
+  'glyph', 'needle', 'pylon', 'mine', 'monolith', 'archivist',
 ];
 
 function waveAvailability(kind: EnemyKind): string {
@@ -206,13 +243,22 @@ const enemyEntries: CodexEntry[] = ENEMY_ORDER.map((kind) => {
   if (kind === 'weaver') {
     stats.push({ label: 'Dano por orbe do leque', value: String(Math.round(spec.dmg * 0.7)) });
   }
+  if (kind === 'needle') {
+    stats.push({ label: 'Dano da descarga', value: String(Math.round(spec.dmg * 0.82)) });
+  }
+  if (kind === 'pylon') {
+    stats.push({ label: 'Rajada em cruz', value: `4 orbes (dano ${Math.round(spec.dmg * 0.62)} cada)` });
+  }
   if (kind === 'spore') {
     stats.push({ label: 'Explosão ao morrer', value: `6 orbes (dano ${Math.round(spec.dmg * 0.7)} cada)` });
+  }
+  if (kind === 'mine') {
+    stats.push({ label: 'Explosão magnética', value: `8 orbes (dano ${Math.round(spec.dmg * 0.68)} cada)` });
   }
   if (kind === 'stinger') {
     stats.push({ label: 'Velocidade da investida', value: '520' });
   }
-  if (kind === 'tank' || kind === 'beetle') {
+  if (kind === 'tank' || kind === 'beetle' || kind === 'monolith') {
     stats.push({ label: 'Chance de soltar coração', value: pct(BAL.drops.heartChanceTank) });
   }
   if (kind === 'boss') {
@@ -225,6 +271,12 @@ const enemyEntries: CodexEntry[] = ENEMY_ORDER.map((kind) => {
     stats.push({ label: 'Dano por orbe da espiral', value: String(Math.round(spec.dmg * 0.5)) });
     stats.push({ label: 'Invocação', value: '3 Larvas + 1 Esporo por ciclo' });
     stats.push({ label: 'Recompensa ao cair', value: `${BAL.drops.bossCoins[0]}–${BAL.drops.bossCoins[1]} moedas + 1 coração` });
+  }
+  if (kind === 'archivist') {
+    stats.push({ label: 'Vida na 1ª aparição (onda 25)', value: String(Math.round((BAL.wave.bossHp(25) / 520) * spec.hp)) });
+    stats.push({ label: 'Dano por orbe da grade', value: String(Math.round(spec.dmg * 0.48)) });
+    stats.push({ label: 'Indexação', value: '3 Minas Ímã por ciclo (4 em fúria)' });
+    stats.push({ label: 'Recompensa ao cair', value: `${BAL.drops.bossCoins[0]}-${BAL.drops.bossCoins[1]} moedas + 1 coracao` });
   }
 
   return {
@@ -376,7 +428,7 @@ const systemEntries: CodexEntry[] = [
     id: 'sectors',
     name: 'Setores',
     tagline: `A campanha — a cada ${SECTOR_LEN} ondas, um mundo novo.`,
-    lore: 'A cada dez ondas a partida viaja para um novo setor: outro cenário, outra trilha sonora, outros inimigos e um chefe próprio. O Campo da Ruína é só a porta de entrada — na onda 11, a Colmeia acorda.',
+    lore: 'A cada dez ondas a partida viaja para um novo setor: outro cenário, outra trilha sonora, outros inimigos e um chefe próprio. O Campo da Ruína é só a porta de entrada: na onda 11, a Colmeia acorda; na onda 21, o Arquivo Magnético abre seus trilhos.',
     tactic: 'Cada setor tem seu próprio ecossistema de ameaças; as táticas que funcionavam no anterior podem não bastar. Quando a rota chega ao fim, ela recomeça do início — mas os inimigos voltam muito mais fortes.',
     accent: '#9dff2e',
     icon: paintIcon('thrusters', '#9dff2e', 48),
@@ -481,7 +533,7 @@ export const CODEX_INTRO = 'Referência completa de tudo que existe no Baluarte:
 
 export const CODEX: readonly CodexCategory[] = [
   { id: 'ship', label: 'Nave', intro: 'A única unidade ainda em campo contra a Ruína.', entries: [shipEntry] },
-  { id: 'enemies', label: 'Ameaças', intro: 'Toda ameaça que você vai enfrentar, setor por setor — da Ruína à Colmeia.', entries: enemyEntries },
+  { id: 'enemies', label: 'Ameaças', intro: 'Toda ameaça que você vai enfrentar, setor por setor: da Ruína ao Arquivo Magnético.', entries: enemyEntries },
   { id: 'upgrades', label: 'Combate', intro: 'Melhorias temporárias, escolhidas ao subir de nível durante a partida.', entries: upgradeEntries },
   { id: 'meta', label: 'Hangar', intro: 'Melhorias permanentes, compradas com moedas entre partidas.', entries: metaEntries },
   { id: 'resources', label: 'Recursos', intro: 'Tudo que você coleta no campo de batalha.', entries: resourceEntries },

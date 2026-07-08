@@ -14,6 +14,8 @@ export interface MusicTheme {
   chords: ReadonlyArray<readonly number[]>;
   /** Waveform of the in-game arp lead. */
   lead: OscillatorType;
+  /** Optional boss arrangement for the same sector. */
+  bossMusic?: MusicTheme;
 }
 
 // A minor synthwave progression: Am — F — C — G

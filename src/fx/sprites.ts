@@ -181,3 +181,24 @@ export const QUEEN_POINTS: ShapePoints = Array.from({ length: 12 }, (_, i) => {
   const r = i % 2 === 0 ? 1.05 : 0.62;
   return [Math.cos(a) * r, Math.sin(a) * r] as const;
 });
+
+/** Magnetic archive glyph: offset chevrons, like a corrupted cursor. */
+export const GLYPH_POINTS: ShapePoints = [
+  [-0.85, -0.8], [0.75, -0.35], [0.35, 0], [0.95, 0.62], [-0.55, 0.82], [-0.2, 0.12],
+];
+
+/** Archive needle: long railgun splinter pointing +X. */
+export const NEEDLE_POINTS: ShapePoints = [
+  [1.35, 0], [0.15, 0.28], [-0.95, 0.16], [-0.48, 0], [-0.95, -0.16], [0.15, -0.28],
+];
+
+/** Magnetic mine: faceted diamond with a clipped core. */
+export const MINE_POINTS: ShapePoints = [
+  [0, -1.1], [0.86, -0.3], [0.66, 0.68], [0, 1.05], [-0.66, 0.68], [-0.86, -0.3],
+];
+
+/** Archivist boss: asymmetric data crown, not a hive star or regular polygon. */
+export const ARCHIVIST_POINTS: ShapePoints = [
+  [0, -1.1], [0.34, -0.56], [1.04, -0.74], [0.66, -0.1], [0.98, 0.66], [0.22, 0.5],
+  [0, 1.08], [-0.22, 0.5], [-0.98, 0.66], [-0.66, -0.1], [-1.04, -0.74], [-0.34, -0.56],
+];

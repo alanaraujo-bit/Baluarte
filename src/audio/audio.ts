@@ -2,7 +2,8 @@ export type SfxName =
   | 'shoot' | 'hit' | 'die' | 'dieBig' | 'gem' | 'coin' | 'heart' | 'hurt'
   | 'level' | 'pick' | 'nova' | 'blade' | 'shotE' | 'wave' | 'warn' | 'bossDie'
   | 'tap' | 'confirm' | 'deny' | 'buy' | 'over' | 'record'
-  | 'spit' | 'lunge' | 'burst' | 'summon' | 'sector';
+  | 'spit' | 'lunge' | 'burst' | 'summon' | 'sector'
+  | 'zap' | 'mine' | 'lattice';
 
 interface ToneOptions {
   f0: number;
@@ -27,7 +28,7 @@ interface NoiseOptions {
 /** Minimum re-trigger gap per effect, so rapid fire never becomes noise soup. */
 const THROTTLE: Partial<Record<SfxName, number>> = {
   shoot: 0.045, hit: 0.03, die: 0.04, gem: 0.03, blade: 0.09, shotE: 0.06, coin: 0.03,
-  spit: 0.07, lunge: 0.08, burst: 0.06,
+  spit: 0.07, lunge: 0.08, burst: 0.06, zap: 0.05, mine: 0.08, lattice: 0.08,
 };
 
 /**
@@ -280,6 +281,21 @@ export class AudioEngine {
         });
         this.noiseHit({ dur: 0.7, vol: 0.09, from: 400, to: 6000, filter: 'bandpass', q: 1 });
         this.vibrate([30, 50, 80]);
+        break;
+      case 'zap':
+        // Dry magnetic discharge for Archive needles and the Archivist beam.
+        this.tone({ f0: 980 * p, f1: 260, type: 'square', dur: 0.07, vol: 0.055 });
+        this.noiseHit({ dur: 0.045, vol: 0.035, from: 7000, to: 2100, filter: 'highpass', q: 1.1 });
+        break;
+      case 'mine':
+        // A compressed pulse that pops outward.
+        this.tone({ f0: 120 * p, f1: 36, type: 'sawtooth', dur: 0.22, vol: 0.14 });
+        this.noiseHit({ dur: 0.19, vol: 0.13, from: 500, to: 4600, filter: 'bandpass', q: 1.6 });
+        break;
+      case 'lattice':
+        // Glassy fourier chirp: the Archive drawing a firing grid.
+        this.tone({ f0: 392, f1: 784, type: 'triangle', dur: 0.12, vol: 0.06 });
+        this.tone({ f0: 587, f1: 1174, type: 'triangle', dur: 0.12, vol: 0.045, when: this.ctx.currentTime + 0.025 });
         break;
     }
   }

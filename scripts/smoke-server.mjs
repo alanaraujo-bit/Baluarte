@@ -34,9 +34,9 @@ function connect(name) {
   const api = {
     ws,
     send: (msg) => ws.send(JSON.stringify(msg)),
-    next: (type, timeout = 8000) =>
+    next: (type, timeout = 8000, predicate = null) =>
       new Promise((resolve, reject) => {
-        const match = (m) => m.t === type;
+        const match = (m) => m.t === type && (!predicate || predicate(m));
         const hit = inbox.findIndex(match);
         if (hit >= 0) return resolve(inbox.splice(hit, 1)[0]);
         const w = { match, resolve };
@@ -91,7 +91,9 @@ try {
   c.ws.close();
 
   b.send({ t: 'ready', ready: true });
-  await a.next('room'); // eco do ready
+  // Espera especificamente o eco do ready de B, não qualquer 'room' na fila
+  // (o join de B já tinha deixado um 'room' pendente no inbox de A).
+  await a.next('room', 8000, (m) => m.players.find((p) => p.slot === 1)?.ready === true);
   a.send({ t: 'start' });
   await a.next('start');
   await b.next('start');

@@ -104,7 +104,58 @@ const COLMEIA: SectorDef = {
   },
 };
 
-export const SECTORS: readonly SectorDef[] = [RUINA, COLMEIA];
+const ARQUIVO: SectorDef = {
+  id: 'arquivo',
+  name: 'O ARQUIVO MAGNÉTICO',
+  subtitle: 'Dados mortos orbitam como lâminas',
+  accent: '#35f0ff',
+  composition: [
+    { kind: 'glyph', weight: 9, from: 1, decay: 0.18, floor: 4 },
+    { kind: 'needle', weight: 5.5, from: 1 },
+    { kind: 'pylon', weight: 4.5, from: 2 },
+    { kind: 'mine', weight: 4, from: 3 },
+    { kind: 'monolith', weight: 3, from: 5 },
+  ],
+  boss: {
+    kind: 'archivist',
+    name: 'Arquivista Magnético',
+    warnSub: 'ELE INDEXOU SUA ROTA DE FUGA',
+    defeatTitle: 'ARQUIVO CORROMPIDO',
+    defeatSub: 'As órbitas de dados entram em silêncio',
+  },
+  background: {
+    gradient: ['#031018', '#07120f', '#10081a'],
+    nebulas: ['rgba(20, 210, 240, 0.42)', 'rgba(118, 255, 183, 0.32)', 'rgba(180, 85, 255, 0.34)'],
+    star: '#b7fff3',
+    grid: 'rgba(90, 255, 218, 0.1)',
+    gridStyle: 'square',
+  },
+  // F# locrian-ish pulse: brittle, metallic, and colder than the previous sectors.
+  music: {
+    bpm: 146,
+    bass: [46.25, 49, 55, 51.91],
+    chords: [
+      [185, 220, 277.18],
+      [196, 246.94, 293.66],
+      [220, 277.18, 329.63],
+      [207.65, 246.94, 311.13],
+    ],
+    lead: 'sawtooth',
+    bossMusic: {
+      bpm: 154,
+      bass: [46.25, 46.25, 55, 51.91],
+      chords: [
+        [185, 233.08, 277.18, 369.99],
+        [185, 220, 277.18, 329.63],
+        [220, 277.18, 329.63, 440],
+        [207.65, 261.63, 311.13, 415.3],
+      ],
+      lead: 'square',
+    },
+  },
+};
+
+export const SECTORS: readonly SectorDef[] = [RUINA, COLMEIA, ARQUIVO];
 
 /** 0-based campaign position — keeps counting up when sectors cycle. */
 export function sectorIndexForWave(wave: number): number {

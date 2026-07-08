@@ -1,17 +1,22 @@
 import { Pool, swapRemove } from '../core/pool';
 import { chance, clamp, damp, dist2, len, rand, randInt, TAU } from '../core/utils';
-import { drawSprite, glowDot, shapeSprite, DART_POINTS, QUEEN_POINTS, STINGER_POINTS, type ShapePoints, type Sprite } from '../fx/sprites';
+import {
+  drawSprite, glowDot, shapeSprite,
+  ARCHIVIST_POINTS, DART_POINTS, GLYPH_POINTS, MINE_POINTS, NEEDLE_POINTS, QUEEN_POINTS, STINGER_POINTS,
+  type ShapePoints, type Sprite,
+} from '../fx/sprites';
 import { BAL } from './balance';
 import type { Player } from './player';
 import type { World } from './world';
 
 export type EnemyKind =
   | 'drone' | 'dart' | 'splitter' | 'mini' | 'wasp' | 'tank' | 'boss'
-  | 'larva' | 'spore' | 'stinger' | 'weaver' | 'beetle' | 'queen';
+  | 'larva' | 'spore' | 'stinger' | 'weaver' | 'beetle' | 'queen'
+  | 'glyph' | 'needle' | 'pylon' | 'mine' | 'monolith' | 'archivist';
 
 /** Boss-class units: fill the boss HP bar, gate wave progression, drop boss loot. */
 export function isBossKind(kind: EnemyKind): boolean {
-  return kind === 'boss' || kind === 'queen';
+  return kind === 'boss' || kind === 'queen' || kind === 'archivist';
 }
 
 export interface Spec {
@@ -40,6 +45,13 @@ export const SPECS: Record<EnemyKind, Spec> = {
   weaver:   { hp: 32,  speed: 72,  dmg: 8,  radius: 12, xp: 2, score: 34,  color: '#3dffc4' },
   beetle:   { hp: 135, speed: 27,  dmg: 20, radius: 23, xp: 5, score: 60,  color: '#ff6b35' },
   queen:    { hp: 640, speed: 52,  dmg: 26, radius: 46, xp: 30, score: 750, color: '#e84dff' },
+  // — Setor 3: O Arquivo Magnético —
+  glyph:     { hp: 16,  speed: 94,  dmg: 7,  radius: 10, xp: 1, score: 16,  color: '#5ee7ff' },
+  needle:    { hp: 22,  speed: 84,  dmg: 9,  radius: 11, xp: 2, score: 32,  color: '#ffd166' },
+  pylon:     { hp: 44,  speed: 34,  dmg: 11, radius: 15, xp: 3, score: 42,  color: '#8affc1' },
+  mine:      { hp: 26,  speed: 50,  dmg: 13, radius: 13, xp: 2, score: 36,  color: '#ff4fb8' },
+  monolith:  { hp: 155, speed: 24,  dmg: 23, radius: 24, xp: 5, score: 70,  color: '#a991ff' },
+  archivist: { hp: 700, speed: 46,  dmg: 28, radius: 48, xp: 34, score: 900, color: '#35f0ff' },
 };
 
 interface ShapeOpts { sides?: number; points?: ShapePoints; rotate?: number; innerDetail?: boolean; }
@@ -59,6 +71,12 @@ export const ENEMY_SHAPE_OPTS: Record<EnemyKind, ShapeOpts> = {
   weaver: { sides: 5, innerDetail: true },
   beetle: { sides: 7, rotate: Math.PI / 7, innerDetail: true },
   queen: { points: QUEEN_POINTS, innerDetail: true },
+  glyph: { points: GLYPH_POINTS },
+  needle: { points: NEEDLE_POINTS },
+  pylon: { sides: 4, innerDetail: true },
+  mine: { points: MINE_POINTS, innerDetail: true },
+  monolith: { sides: 6, rotate: Math.PI / 6, innerDetail: true },
+  archivist: { points: ARCHIVIST_POINTS, innerDetail: true },
 };
 
 // Colosso phases
@@ -77,6 +95,12 @@ const Q_SUMMON = 3;
 const ST_SEEK = 0;
 const ST_WINDUP = 1;
 const ST_LUNGE = 2;
+
+// Arquivista phases: orbital control, lattice fire, focused stream, mine indexing.
+const A_ORBIT = 0;
+const A_LATTICE = 1;
+const A_BEAM = 2;
+const A_INDEX = 3;
 
 export class Enemy {
   /** Network identity for snapshot interpolation; inert in solo play. */
@@ -323,10 +347,17 @@ export class Enemies {
       case 'drone':
       case 'mini':
       case 'larva':
+      case 'glyph': {
+        const slip = Math.sin(e.t * 4.8 + e.seed) * (e.kind === 'glyph' ? 58 : 0);
         e.vx += (nx * e.speed - e.vx) * k;
         e.vy += (ny * e.speed - e.vy) * k;
+        if (e.kind === 'glyph') {
+          e.vx += (-ny * slip - e.vx) * damp(2.4, dt);
+          e.vy += (nx * slip - e.vy) * damp(2.4, dt);
+        }
         e.rot = Math.atan2(e.vy, e.vx) + Math.PI / 2;
         break;
+      }
       case 'dart': {
         const weave = Math.sin(e.t * 5 + e.seed) * 70;
         e.vx += ((nx * e.speed - ny * weave) - e.vx) * damp(6, dt);
@@ -438,15 +469,89 @@ export class Enemies {
         break;
       }
       case 'beetle':
+      case 'monolith':
         e.vx += (nx * e.speed - e.vx) * damp(1.8, dt);
         e.vy += (ny * e.speed - e.vy) * damp(1.8, dt);
         e.rot -= dt * 0.4;
+        if (e.kind === 'monolith') {
+          e.fireT -= dt;
+          if (e.fireT <= 0 && d < 260) {
+            e.fireT = rand(2.7, 3.5);
+            for (const player of world.players) {
+              if (player.dead) continue;
+              const px = e.x - player.x;
+              const py = e.y - player.y;
+              const pd = len(px, py) || 1;
+              if (pd < 280) {
+                player.vx += (px / pd) * 90;
+                player.vy += (py / pd) * 90;
+              }
+            }
+            world.particles.ring(e.x, e.y, SPECS.monolith.color, 14, 280, 0.35, 3);
+            world.audio.play('lattice');
+          }
+        }
         break;
+      case 'needle': {
+        let tx = 0;
+        let ty = 0;
+        if (d > 300) {
+          tx = nx * e.speed;
+          ty = ny * e.speed;
+        } else if (d < 210) {
+          tx = -nx * e.speed;
+          ty = -ny * e.speed;
+        }
+        const side = Math.sin(e.seed) >= 0 ? 1 : -1;
+        tx += -ny * side * 60;
+        ty += nx * side * 60;
+        e.vx += (tx - e.vx) * damp(4.4, dt);
+        e.vy += (ty - e.vy) * damp(4.4, dt);
+        e.rot = Math.atan2(dy, dx);
+        e.fireT -= dt;
+        if (e.fireT <= 0 && d < 430) {
+          e.fireT = rand(2.2, 3);
+          world.enemyShots.spawn(e.x, e.y, Math.atan2(dy, dx), 240, e.dmg * 0.82);
+          world.audio.play('zap');
+        }
+        break;
+      }
+      case 'pylon': {
+        const orbit = Math.sin(e.t * 1.7 + e.seed) * 22;
+        e.vx += ((nx * e.speed - ny * orbit) - e.vx) * damp(1.7, dt);
+        e.vy += ((ny * e.speed + nx * orbit) - e.vy) * damp(1.7, dt);
+        e.rot += dt * 0.9;
+        e.fireT -= dt;
+        if (e.fireT <= 0 && d < 390) {
+          e.fireT = rand(2.4, 3.2);
+          const base = Math.atan2(dy, dx);
+          for (let i = 0; i < 4; i++) {
+            const a = base + (i / 4) * TAU;
+            world.enemyShots.spawn(e.x + Math.cos(a) * e.radius, e.y + Math.sin(a) * e.radius, a, 150, e.dmg * 0.62);
+          }
+          world.audio.play('lattice');
+        }
+        break;
+      }
+      case 'mine': {
+        const bob = Math.sin(e.t * 3 + e.seed) * 34;
+        e.vx += ((nx * e.speed * 0.75 - ny * bob) - e.vx) * damp(2, dt);
+        e.vy += ((ny * e.speed * 0.75 + nx * bob) - e.vy) * damp(2, dt);
+        e.rot += dt * 1.8;
+        e.fireT -= dt;
+        if (e.fireT <= 0 && d < 95) {
+          this.kill(e, world, null);
+        }
+        break;
+      }
       case 'boss':
         this.steerBoss(e, dt, world, nx, ny, d);
         break;
       case 'queen':
         this.steerQueen(e, dt, world, nx, ny);
+        break;
+      case 'archivist':
+        this.steerArchivist(e, dt, world, nx, ny, d);
         break;
     }
   }
@@ -593,12 +698,103 @@ export class Enemies {
     }
   }
 
+  private steerArchivist(e: Enemy, dt: number, world: World, nx: number, ny: number, d: number): void {
+    e.rot -= dt * 0.36;
+    e.phaseT += dt;
+    const enrage = e.hp < e.maxHp * 0.35 ? 0.68 : 1;
+
+    switch (e.phase) {
+      case A_ORBIT: {
+        const side = Math.sin(e.seed) >= 0 ? 1 : -1;
+        let tx = -ny * side * e.speed;
+        let ty = nx * side * e.speed;
+        if (d > 260) {
+          tx += nx * e.speed;
+          ty += ny * e.speed;
+        } else if (d < 180) {
+          tx -= nx * e.speed;
+          ty -= ny * e.speed;
+        }
+        e.vx += (tx - e.vx) * damp(2.4, dt);
+        e.vy += (ty - e.vy) * damp(2.4, dt);
+        if (e.phaseT > 3.1 * enrage) {
+          e.phase = A_LATTICE;
+          e.phaseT = 0;
+          e.volleys = 0;
+        }
+        break;
+      }
+      case A_LATTICE: {
+        e.vx *= 1 - Math.min(1, 4.5 * dt);
+        e.vy *= 1 - Math.min(1, 4.5 * dt);
+        if (e.phaseT > 0.42 * enrage) {
+          e.phaseT = 0;
+          e.volleys++;
+          const count = e.hp < e.maxHp * 0.35 ? 6 : 5;
+          const base = e.seed + e.volleys * 0.27;
+          for (let i = 0; i < count; i++) {
+            const a = base + (i / count) * TAU;
+            world.enemyShots.spawn(e.x + Math.cos(a) * e.radius, e.y + Math.sin(a) * e.radius, a, 150, e.dmg * 0.48);
+          }
+          world.audio.play('lattice');
+          if (e.volleys >= 4) {
+            e.phase = A_BEAM;
+            e.phaseT = 0;
+            e.fireT = 0.34;
+          }
+        }
+        break;
+      }
+      case A_BEAM: {
+        e.vx *= 1 - Math.min(1, 5 * dt);
+        e.vy *= 1 - Math.min(1, 5 * dt);
+        e.flash = 0.05;
+        e.fireT -= dt;
+        if (e.fireT <= 0) {
+          e.fireT = 0.16 * enrage;
+          const p = world.nearestPlayer(e.x, e.y);
+          const a = p ? Math.atan2(p.y - e.y, p.x - e.x) : Math.atan2(ny, nx);
+          for (let i = -1; i <= 1; i++) {
+            world.enemyShots.spawn(e.x + Math.cos(a) * e.radius, e.y + Math.sin(a) * e.radius, a + i * 0.08, 260, e.dmg * 0.38);
+          }
+          world.audio.play('zap');
+        }
+        if (e.phaseT > 1.25 * enrage) {
+          e.phase = A_INDEX;
+          e.phaseT = 0;
+          e.volleys = 0;
+        }
+        break;
+      }
+      case A_INDEX:
+        e.vx *= 1 - Math.min(1, 4 * dt);
+        e.vy *= 1 - Math.min(1, 4 * dt);
+        if (e.volleys === 0 && e.phaseT > 0.45) {
+          e.volleys = 1;
+          const hpMul = e.maxHp / SPECS.archivist.hp;
+          const dmgMul = e.dmg / SPECS.archivist.dmg;
+          const count = e.hp < e.maxHp * 0.35 ? 4 : 3;
+          for (let i = 0; i < count; i++) {
+            const a = e.seed + (i / count) * TAU + rand(-0.25, 0.25);
+            this.pendingSpawn.push({ kind: 'mine', x: e.x + Math.cos(a) * (e.radius + 18), y: e.y + Math.sin(a) * (e.radius + 18), hpMul, dmgMul });
+          }
+          world.particles.ring(e.x, e.y, SPECS.archivist.color, 12, 330, 0.45, 4);
+          world.audio.play('mine');
+        }
+        if (e.phaseT > 1.35 * enrage) {
+          e.phase = A_ORBIT;
+          e.phaseT = 0;
+        }
+        break;
+    }
+  }
+
   damage(e: Enemy, amount: number, crit: boolean, kx: number, ky: number, world: World, killer: Player | null = null): void {
     if (e.dead) return;
     e.hp -= amount;
     e.flash = 0.09;
     // Heavy units and bosses resist knockback.
-    const resist = e.kind === 'tank' || e.kind === 'beetle' ? 0.35 : isBossKind(e.kind) ? 0.08 : 1;
+    const resist = e.kind === 'tank' || e.kind === 'beetle' || e.kind === 'monolith' ? 0.35 : isBossKind(e.kind) ? 0.08 : 1;
     e.kvx += kx * resist;
     e.kvy += ky * resist;
     world.floaters.spawn(e.x, e.y - e.radius - 4, String(Math.round(amount)), {
@@ -627,7 +823,7 @@ export class Enemies {
     if (big) world.shake(8);
 
     // Loot
-    const heavy = e.kind === 'tank' || e.kind === 'beetle';
+    const heavy = e.kind === 'tank' || e.kind === 'beetle' || e.kind === 'monolith';
     world.pickups.spawnGems(e.x, e.y, e.xp);
     if (isBossKind(e.kind)) {
       world.pickups.spawnCoins(e.x, e.y, randInt(BAL.drops.bossCoins[0], BAL.drops.bossCoins[1]));
@@ -645,6 +841,15 @@ export class Enemies {
         world.enemyShots.spawn(e.x, e.y, a, 140, e.dmg * 0.7);
       }
       world.audio.play('burst');
+    }
+
+    if (e.kind === 'mine') {
+      const offset = rand(0, TAU);
+      for (let i = 0; i < 8; i++) {
+        const a = offset + (i / 8) * TAU;
+        world.enemyShots.spawn(e.x, e.y, a, 185, e.dmg * 0.68);
+      }
+      world.audio.play('mine');
     }
 
     if (e.kind === 'splitter') {
