@@ -204,12 +204,50 @@ const ENEMY_LORE: Record<EnemyKind, EnemyLore> = {
     lore: 'A entidade que cataloga cada rota de fuga. O Arquivista não ruge nem comanda uma colmeia: ele calcula, trava o espaço em padrões e semeia minas onde a nave tende a passar.',
     tactic: 'Na grade, procure os vãos entre as rajadas rotativas; no feixe, mova-se lateralmente assim que ele começar a brilhar; na indexação, limpe as Minas Ímã antes que a próxima fase aperte a arena. Abaixo de 35% de vida ele adiciona projéteis e minas extras.',
   },
+  // — Setor 4: Estação Gélida —
+  crystal: {
+    name: 'Cristalino',
+    tagline: 'Cristal hexaédrico que avança e cintila em rajadas curtas.',
+    lore: 'Um fragmento de gelo cristalino animado pela assinatura fria da Ruína. Desliza em linha reta e, de vez em quando, dá um estalo seco e avança num salto repentino.',
+    tactic: 'O avanço repentino pega desprevenido quem fica parado. Mantenha distância e movimento lateral constante — o salto dele é reto e não acompanha curvas.',
+  },
+  shard: {
+    name: 'Estilhaço',
+    tagline: 'Estilhaço perfurante que dispara em investidas telegrafadas.',
+    lore: 'Uma lasca de gelo temperada pela pressão abissal da Estação. Ele para, brilha por um instante — e atravessa o campo num rasgo supersônico que solta fragmentos ao colidir.',
+    tactic: 'O brilho é seu melhor aviso: quando ele congelar no lugar e ficar branco, saia da linha de tiro. A investida é reta e não desvia. Ao morrer, solta três fragmentos em leque — mantenha distância.',
+  },
+  flake: {
+    name: 'Floco',
+    tagline: 'Floco de gelo à deriva que dispara orbes congelantes.',
+    lore: 'Um cristal de neve animado que vaga pelo campo rodopiando lentamente. Cada rotação cospe um orbe de gelo que gruda na fuselagem ebreve congela os propulsores.',
+    tactic: 'Os orbes congelantes reduzem drasticamente sua velocidade — um único acerto pode deixar você lento o bastante para ser cercado. Priorize abater Flocos antes de outros inimigos; os orbes são lentos e dá para desviar.',
+  },
+  geyser: {
+    name: 'Geiser',
+    tagline: 'Torre de cristal que semeia poças de gelo no campo.',
+    lore: 'Uma coluna de cristal alimentada por veios de gelo subterrâneos. Ela não caça: finca raízes no chão e expele poças de gelo que se espalham como manchas no campo de batalha.',
+    tactic: 'As poças de gelo são quase invisíveis no calor do combate e machucam por contato. Quando um Geiser aparecer, elimine-o rápido — cada poça que ele planta tira espaço de manobra.',
+  },
+  glacier: {
+    name: 'Glaciar',
+    tagline: 'Bloco de gelo colossal que pulsa ondas de congelamento.',
+    lore: 'O coração congelado de um antigo titã da Ruína. Avança devagar, mas é quase indestrutível, e cada batida do seu núcleo libera um anel de fragmentos que congelam tudo que tocam.',
+    tactic: 'Como todo unitário pesado, nunca troque tiros de perto com ele. O anel de fragmentos que ele emite periodicamente se expande devagar — recue para passar entre os orbes gelados.',
+  },
+  zero: {
+    name: 'Zero Absoluto',
+    tagline: 'O núcleo congelado da Estação — chefe do setor 4.',
+    lore: 'No centro da Estação Gélida, onde nem as estrelas chegam, o Zero Absoluto espera. Não é uma criatura: é a própria temperatura zero corporificada — um olho de furacão de gelo que alterna entre rajadas de orbes congelantes, geiseres que brotam do chão e um feixe contínuo que varre o campo.',
+    tactic: 'Três fases, três respostas: na órbita, desvie dos orbes em zigue-zague; nos geiseres, fique atento ao brilho no chão e não pare em lugar nenhum; no feixe, mova-se lateralmente para escapar da varredura. Abaixo de 35% de vida, ele entra em fúria e começa a invocar Estilhaços durante a fase de órbita.',
+  },
 };
 
 const ENEMY_ORDER: readonly EnemyKind[] = [
   'drone', 'dart', 'splitter', 'mini', 'wasp', 'tank', 'boss',
   'larva', 'spore', 'stinger', 'weaver', 'beetle', 'queen',
   'glyph', 'needle', 'pylon', 'mine', 'monolith', 'archivist',
+  'crystal', 'shard', 'flake', 'geyser', 'glacier', 'zero',
 ];
 
 function waveAvailability(kind: EnemyKind): string {
@@ -260,7 +298,23 @@ const enemyEntries: CodexEntry[] = ENEMY_ORDER.map((kind) => {
   if (kind === 'stinger') {
     stats.push({ label: 'Velocidade da investida', value: '520' });
   }
-  if (kind === 'tank' || kind === 'beetle' || kind === 'monolith') {
+  if (kind === 'shard') {
+    stats.push({ label: 'Velocidade da investida', value: '560' });
+    stats.push({ label: 'Fragmentos ao morrer', value: '3 projéteis em leque' });
+  }
+  if (kind === 'flake') {
+    stats.push({ label: 'Orbe congelante (dano + lentidão)', value: `Dano ${Math.round(spec.dmg * 0.7)} + lentidão de 0.8s` });
+  }
+  if (kind === 'geyser') {
+    stats.push({ label: 'Poça de gelo', value: `Dano ${Math.round(spec.dmg * 0.75)}, dura 3s` });
+  }
+  if (kind === 'glacier') {
+    stats.push({ label: 'Anel congelante', value: `12 orbes (dano ${Math.round(spec.dmg * 0.4)} cada + lentidão)` });
+  }
+  if (kind === 'crystal') {
+    stats.push({ label: 'Salto repentino', value: 'Avanço de 160px/s a cada ~2s' });
+  }
+  if (kind === 'tank' || kind === 'beetle' || kind === 'monolith' || kind === 'glacier') {
     stats.push({ label: 'Chance de soltar coração', value: pct(BAL.drops.heartChanceTank) });
   }
   if (kind === 'boss') {
@@ -279,6 +333,14 @@ const enemyEntries: CodexEntry[] = ENEMY_ORDER.map((kind) => {
     stats.push({ label: 'Dano por orbe da grade', value: String(Math.round(spec.dmg * 0.48)) });
     stats.push({ label: 'Indexação', value: '3 Minas Ímã por ciclo (4 em fúria)' });
     stats.push({ label: 'Recompensa ao cair', value: `${BAL.drops.bossCoins[0]}-${BAL.drops.bossCoins[1]} moedas + 1 coracao` });
+  }
+  if (kind === 'zero') {
+    stats.push({ label: 'Vida na 1ª aparição (onda 35)', value: String(Math.round((BAL.wave.bossHp(35) / 520) * spec.hp)) });
+    stats.push({ label: 'Dano por orbe congelante', value: String(Math.round(spec.dmg * 0.45)) });
+    stats.push({ label: 'Geiseres plantados por ciclo', value: '4 poças de gelo' });
+    stats.push({ label: 'Feixe congelante', value: '5 orbes por rajada' });
+    stats.push({ label: 'Invoca em fúria', value: '3 Estilhaços por ciclo' });
+    stats.push({ label: 'Recompensa ao cair', value: `${BAL.drops.bossCoins[0]}-${BAL.drops.bossCoins[1]} moedas + 1 coração` });
   }
 
   return {
@@ -399,7 +461,7 @@ const resourceEntries: CodexEntry[] = [
     icon: spriteIcon(heartSprite(), 48),
     stats: [
       { label: 'Efeito', value: 'Cura 25% da vida máxima' },
-      { label: 'Queda de unidade pesada (Tanque, Carrapaço)', value: pct(BAL.drops.heartChanceTank) },
+      { label: 'Queda de unidade pesada (Tanque, Carrapaço, Glaciar)', value: pct(BAL.drops.heartChanceTank) },
       { label: 'Queda de chefe', value: 'Sempre' },
     ],
   },

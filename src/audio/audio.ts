@@ -4,7 +4,8 @@ export type SfxName =
   | 'tap' | 'confirm' | 'deny' | 'buy' | 'over' | 'record'
   | 'spit' | 'lunge' | 'burst' | 'summon' | 'sector'
   | 'zap' | 'mine' | 'lattice'
-  | 'arrow';
+  | 'arrow'
+  | 'crack' | 'freeze' | 'shatter' | 'howl';
 
 interface ToneOptions {
   f0: number;
@@ -302,6 +303,28 @@ export class AudioEngine {
         // Sutil ping de localização — duas notas curtas e frias.
         this.tone({ f0: 880, f1: 660, type: 'sine', dur: 0.12, vol: 0.06 });
         this.tone({ f0: 1108, f1: 880, type: 'sine', dur: 0.10, vol: 0.045, when: this.ctx.currentTime + 0.13 });
+        break;
+      // ——— Setor 4: Estação Gélida ———
+      case 'crack':
+        // Gelo rachando — estalo seco e rápido.
+        this.tone({ f0: 1200 * p, f1: 380, type: 'square', dur: 0.06, vol: 0.05 });
+        this.noiseHit({ dur: 0.04, vol: 0.04, from: 8000, to: 3000, filter: 'highpass', q: 0.6 });
+        break;
+      case 'freeze':
+        // Cristalização — som frio e brilhante.
+        this.tone({ f0: 880 * p, f1: 1320 * p, type: 'triangle', dur: 0.14, vol: 0.07 });
+        this.tone({ f0: 660, f1: 1760, type: 'sine', dur: 0.2, vol: 0.04, when: this.ctx.currentTime + 0.05 });
+        break;
+      case 'shatter':
+        // Estilhaçamento — fragmentos de gelo se quebrando.
+        this.tone({ f0: 400 * p, f1: 60, type: 'sawtooth', dur: 0.22, vol: 0.12 });
+        this.noiseHit({ dur: 0.18, vol: 0.15, from: 5000, to: 400, filter: 'bandpass', q: 1.8 });
+        break;
+      case 'howl':
+        // Vento gelado — um uido baixo e longo que cresce.
+        this.tone({ f0: 130, f1: 200, type: 'sawtooth', dur: 0.45, vol: 0.08 });
+        this.tone({ f0: 160, f1: 240, type: 'triangle', dur: 0.45, vol: 0.05, when: this.ctx.currentTime + 0.08 });
+        this.noiseHit({ dur: 0.4, vol: 0.06, from: 400, to: 3000, filter: 'bandpass', q: 1.2 });
         break;
     }
   }

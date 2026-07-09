@@ -35,6 +35,9 @@ export class Player {
   iframes = 0;
   dead = false;
 
+  /** Timer for freeze/slow effect — reduces movement responsiveness. */
+  slowTimer = 0;
+
   /**
    * Movement intent for this sim tick, already normalized/quantized. Fed from
    * the local joystick in solo play and from the network in co-op — the sim
@@ -69,6 +72,10 @@ export class Player {
     this.hp += Math.max(0, next.maxHp - this.stats.maxHp);
     this.stats = next;
     this.hp = clamp(this.hp, 0, next.maxHp);
+  }
+
+  slow(duration: number): void {
+    this.slowTimer = Math.max(this.slowTimer, duration);
   }
 
   addXp(value: number): void {
@@ -120,8 +127,9 @@ export class Player {
     const s = this.stats;
     const mag = this.intentMag;
     const mv = BAL.player.move;
-    const tx = this.intent.mx * s.speed;
-    const ty = this.intent.my * s.speed;
+    const slowMul = this.slowTimer > 0 ? 0.35 : 1;
+    const tx = this.intent.mx * s.speed * slowMul;
+    const ty = this.intent.my * s.speed * slowMul;
     let rate: number = mv.accel;
     if (mag < 0.01) rate = mv.brake;
     else if (tx * this.vx + ty * this.vy < 0) rate = mv.flip;
@@ -136,6 +144,7 @@ export class Player {
     if (this.dead) return;
     const s = this.stats;
     this.iframes -= dt;
+    this.slowTimer = Math.max(0, this.slowTimer - dt);
     this.recoil = Math.max(0, this.recoil - dt * 6);
     if (s.regen > 0) this.hp = clamp(this.hp + s.regen * dt, 0, s.maxHp);
 

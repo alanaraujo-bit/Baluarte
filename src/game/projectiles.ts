@@ -173,6 +173,8 @@ export class PlayerShots {
   }
 }
 
+export type OrbVisual = 'default' | 'ice' | 'patch';
+
 export interface Orb {
   /** Network identity for snapshot interpolation; inert in solo play. */
   id: number;
@@ -180,13 +182,19 @@ export interface Orb {
   vx: number; vy: number;
   dmg: number;
   life: number;
+  /** Visual variant for rendering. */
+  visual: OrbVisual;
+  /** Slow duration on hit (0 = no slow). */
+  freeze: number;
 }
 
 export class EnemyShots {
-  private readonly pool = new Pool<Orb>(() => ({ id: 0, x: 0, y: 0, vx: 0, vy: 0, dmg: 0, life: 0 }));
+  private readonly pool = new Pool<Orb>(() => ({ id: 0, x: 0, y: 0, vx: 0, vy: 0, dmg: 0, life: 0, visual: 'default', freeze: 0 }));
   readonly active: Orb[] = [];
   private nextId = 1;
   private orb: Sprite | null = null;
+  private iceOrb: Sprite | null = null;
+  private patchOrb: Sprite | null = null;
 
   spawn(x: number, y: number, angle: number, speed: number, dmg: number): void {
     const o = this.pool.obtain();
@@ -197,6 +205,38 @@ export class EnemyShots {
     o.vy = Math.sin(angle) * speed;
     o.dmg = dmg;
     o.life = 4.5;
+    o.visual = 'default';
+    o.freeze = 0;
+    this.active.push(o);
+  }
+
+  /** Spawn an ice orb that slows the player on hit. */
+  spawnIce(x: number, y: number, angle: number, speed: number, dmg: number, freezeDur = 0.8): void {
+    const o = this.pool.obtain();
+    o.id = this.nextId++;
+    o.x = x;
+    o.y = y;
+    o.vx = Math.cos(angle) * speed;
+    o.vy = Math.sin(angle) * speed;
+    o.dmg = dmg;
+    o.life = 4.5;
+    o.visual = 'ice';
+    o.freeze = freezeDur;
+    this.active.push(o);
+  }
+
+  /** Spawn a stationary ice patch hazard. */
+  spawnPatch(x: number, y: number, dmg: number, life = 3): void {
+    const o = this.pool.obtain();
+    o.id = this.nextId++;
+    o.x = x;
+    o.y = y;
+    o.vx = 0;
+    o.vy = 0;
+    o.dmg = dmg;
+    o.life = life;
+    o.visual = 'patch';
+    o.freeze = 0;
     this.active.push(o);
   }
 
@@ -215,8 +255,14 @@ export class EnemyShots {
         const r = p.radius + 7;
         if (dist2(o.x, o.y, p.x, p.y) < r * r) {
           p.takeDamage(o.dmg, world);
-          if (this.orb) {
-            world.particles.burst(this.orb, o.x, o.y, { count: 5, speed: 110, life: 0.25 });
+          if (o.freeze > 0) p.slow(o.freeze);
+          const hitSpr = o.visual === 'patch' ? this.patchOrb : o.visual === 'ice' ? this.iceOrb : this.orb;
+          if (hitSpr) {
+            world.particles.burst(hitSpr, o.x, o.y, { count: 5, speed: 110, life: 0.25 });
+          }
+          if (o.visual === 'patch') {
+            // Ice patches persist after the first hit (area denial).
+            continue;
           }
           this.pool.free(swapRemove(this.active, i));
           break;
@@ -227,10 +273,14 @@ export class EnemyShots {
 
   render(ctx: CanvasRenderingContext2D, time: number, camX: number, camY: number, vpW: number, vpH: number): void {
     if (!this.orb) this.orb = glowDot(7, '#ff4ecd');
+    if (!this.iceOrb) this.iceOrb = glowDot(8, '#8af0ff');
+    if (!this.patchOrb) this.patchOrb = glowDot(14, 'rgba(160, 230, 255, 0.6)');
     for (const o of this.active) {
       if (!isVisible(o.x, o.y, camX, camY, vpW, vpH)) continue;
       const pulse = 1 + Math.sin(time * 12 + o.x) * 0.15;
-      drawSprite(ctx, this.orb, o.x, o.y, 0, pulse);
+      const spr = o.visual === 'patch' ? this.patchOrb! : o.visual === 'ice' ? this.iceOrb! : this.orb!;
+      const alpha = o.visual === 'patch' ? 0.5 + Math.sin(time * 3 + o.id) * 0.15 : 1;
+      drawSprite(ctx, spr, o.x, o.y, 0, pulse, alpha);
     }
   }
 

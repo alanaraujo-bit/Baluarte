@@ -155,7 +155,59 @@ export const ARQUIVO: SectorDef = {
   },
 };
 
-export const SECTORS: readonly SectorDef[] = [RUINA, COLMEIA, ARQUIVO];
+export const GELIDA: SectorDef = {
+  id: 'gelida',
+  name: 'ESTAÇÃO GÉLIDA',
+  subtitle: 'O frio absoluto onde até a luz congela',
+  accent: '#4fc3f7',
+  composition: [
+    { kind: 'crystal', weight: 9, from: 1, decay: 0.18, floor: 4 },
+    { kind: 'shard', weight: 5, from: 1 },
+    { kind: 'flake', weight: 4.5, from: 2 },
+    { kind: 'geyser', weight: 3.5, from: 3 },
+    { kind: 'glacier', weight: 3, from: 5 },
+  ],
+  boss: {
+    kind: 'zero',
+    name: 'Zero Absoluto',
+    warnSub: 'A TEMPERATURA CAIU PARA ZERO',
+    defeatTitle: 'ZERO ABSOLUTO DESTRUÍDO',
+    defeatSub: 'O gelo se quebra... por enquanto',
+  },
+  background: {
+    gradient: ['#0b1620', '#0a1a2e', '#05101a'],
+    nebulas: ['rgba(80, 200, 255, 0.4)', 'rgba(160, 230, 255, 0.3)', 'rgba(40, 120, 200, 0.35)'],
+    star: '#d4f5ff',
+    grid: 'rgba(100, 200, 255, 0.08)',
+    gridStyle: 'hex',
+  },
+  // D-minor glacial: cold, hollow, with chime-like lead. Slower and wider
+  // than previous sectors to evoke the vast frozen expanse.
+  music: {
+    bpm: 100,
+    bass: [36.71, 43.65, 38.89, 43.65],
+    chords: [
+      [146.83, 174.61, 220],
+      [174.61, 220, 261.63],
+      [155.56, 185, 233.08],
+      [174.61, 220, 261.63],
+    ],
+    lead: 'triangle',
+    bossMusic: {
+      bpm: 116,
+      bass: [36.71, 43.65, 32.7, 43.65],
+      chords: [
+        [146.83, 185, 233.08, 293.66],
+        [174.61, 220, 277.18, 349.23],
+        [155.56, 196, 246.94, 311.13],
+        [185, 233.08, 277.18, 370],
+      ],
+      lead: 'square',
+    },
+  },
+};
+
+export const SECTORS: readonly SectorDef[] = [RUINA, COLMEIA, ARQUIVO, GELIDA];
 
 /** 0-based campaign position — keeps counting up when sectors cycle. */
 export function sectorIndexForWave(wave: number): number {

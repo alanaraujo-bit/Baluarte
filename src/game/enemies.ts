@@ -4,6 +4,7 @@ import { chance, clamp, damp, dist2, len, rand, randInt, TAU } from '../core/uti
 import {
   drawSprite, glowDot, shapeSprite,
   ARCHIVIST_POINTS, DART_POINTS, GLYPH_POINTS, MINE_POINTS, NEEDLE_POINTS, QUEEN_POINTS, STINGER_POINTS,
+  SHARD_POINTS, FLAKE_POINTS, GEYSER_POINTS, GLACIER_POINTS, ZERO_POINTS,
   type ShapePoints, type Sprite,
 } from '../fx/sprites';
 import { BAL } from './balance';
@@ -13,11 +14,12 @@ import type { World } from './world';
 export type EnemyKind =
   | 'drone' | 'dart' | 'splitter' | 'mini' | 'wasp' | 'tank' | 'boss'
   | 'larva' | 'spore' | 'stinger' | 'weaver' | 'beetle' | 'queen'
-  | 'glyph' | 'needle' | 'pylon' | 'mine' | 'monolith' | 'archivist';
+  | 'glyph' | 'needle' | 'pylon' | 'mine' | 'monolith' | 'archivist'
+  | 'crystal' | 'shard' | 'flake' | 'geyser' | 'glacier' | 'zero';
 
 /** Boss-class units: fill the boss HP bar, gate wave progression, drop boss loot. */
 export function isBossKind(kind: EnemyKind): boolean {
-  return kind === 'boss' || kind === 'queen' || kind === 'archivist';
+  return kind === 'boss' || kind === 'queen' || kind === 'archivist' || kind === 'zero';
 }
 
 export interface Spec {
@@ -51,8 +53,14 @@ export const SPECS: Record<EnemyKind, Spec> = {
   needle:    { hp: 22,  speed: 84,  dmg: 9,  radius: 11, xp: 2, score: 32,  color: '#ffd166' },
   pylon:     { hp: 44,  speed: 34,  dmg: 11, radius: 15, xp: 3, score: 42,  color: '#8affc1' },
   mine:      { hp: 26,  speed: 50,  dmg: 13, radius: 13, xp: 2, score: 36,  color: '#ff4fb8' },
-  monolith:  { hp: 155, speed: 24,  dmg: 23, radius: 24, xp: 5, score: 70,  color: '#a991ff' },
-  archivist: { hp: 700, speed: 46,  dmg: 28, radius: 48, xp: 34, score: 900, color: '#35f0ff' },
+  monolith:  { hp: 155, speed: 24,  dmg: 23, radius: 24, xp: 5, score: 70,  color: '#a991ff' },  archivist: { hp: 700, speed: 46, dmg: 28, radius: 48, xp: 34, score: 900, color: '#35f0ff' },
+  // — Setor 4: Estação Gélida —
+  crystal:  { hp: 20,  speed: 70,  dmg: 8,  radius: 12, xp: 1, score: 14,  color: '#a8e8ff' },
+  shard:    { hp: 11,  speed: 140, dmg: 7,  radius: 9,  xp: 2, score: 26,  color: '#5ee7ff' },
+  flake:    { hp: 28,  speed: 42,  dmg: 9,  radius: 14, xp: 2, score: 30,  color: '#e0f7ff' },
+  geyser:   { hp: 38,  speed: 18,  dmg: 12, radius: 16, xp: 3, score: 40,  color: '#6dd5ff' },
+  glacier:  { hp: 140, speed: 26,  dmg: 22, radius: 24, xp: 5, score: 65,  color: '#4fc3f7' },
+  zero:     { hp: 760, speed: 50,  dmg: 30, radius: 50, xp: 36, score: 1000, color: '#b3e5fc' },
 };
 
 interface ShapeOpts { sides?: number; points?: ShapePoints; rotate?: number; innerDetail?: boolean; }
@@ -78,6 +86,12 @@ export const ENEMY_SHAPE_OPTS: Record<EnemyKind, ShapeOpts> = {
   mine: { points: MINE_POINTS, innerDetail: true },
   monolith: { sides: 6, rotate: Math.PI / 6, innerDetail: true },
   archivist: { points: ARCHIVIST_POINTS, innerDetail: true },
+  crystal:  { sides: 6, innerDetail: true },
+  shard:    { points: SHARD_POINTS },
+  flake:    { points: FLAKE_POINTS, innerDetail: true },
+  geyser:   { points: GEYSER_POINTS, innerDetail: true },
+  glacier:  { points: GLACIER_POINTS, innerDetail: true },
+  zero:     { points: ZERO_POINTS, innerDetail: true },
 };
 
 // Colosso phases
@@ -102,6 +116,16 @@ const A_ORBIT = 0;
 const A_LATTICE = 1;
 const A_BEAM = 2;
 const A_INDEX = 3;
+
+// Estilhaço phases: approach, wind-up flash, and the dash itself.
+const SH_SEEK = 0;
+const SH_WINDUP = 1;
+const SH_DASH = 2;
+
+// Zero Absoluto phases: orbit + fire, ice geysers, freezing beam.
+const Z_CHASE = 0;
+const Z_GEYSER = 1;
+const Z_BEAM = 2;
 
 export class Enemy {
   /** Network identity for snapshot interpolation; inert in solo play. */
@@ -558,6 +582,24 @@ export class Enemies {
       case 'archivist':
         this.steerArchivist(e, dt, world, nx, ny, d);
         break;
+      case 'crystal':
+        this.steerCrystal(e, dt, world, nx, ny);
+        break;
+      case 'shard':
+        this.steerShard(e, dt, world, nx, ny, d);
+        break;
+      case 'flake':
+        this.steerFlake(e, dt, world, nx, ny, d);
+        break;
+      case 'geyser':
+        this.steerGeyser(e, dt, world, nx, ny);
+        break;
+      case 'glacier':
+        this.steerGlacier(e, dt, world, nx, ny, d);
+        break;
+      case 'zero':
+        this.steerZero(e, dt, world, nx, ny, d);
+        break;
     }
   }
 
@@ -703,6 +745,104 @@ export class Enemies {
     }
   }
 
+  private steerCrystal(e: Enemy, dt: number, world: World, nx: number, ny: number): void {
+    // Direct chase with periodic crystal blink — a short burst forward.
+    e.vx += (nx * e.speed - e.vx) * damp(4, dt);
+    e.vy += (ny * e.speed - e.vy) * damp(4, dt);
+    e.rot += dt * 1.6;
+    e.fireT -= dt;
+    if (e.fireT <= 0) {
+      e.fireT = rand(1.8, 2.8);
+      e.vx += nx * 160;
+      e.vy += ny * 160;
+      world.audio.play('crack');
+    }
+  }
+
+  private steerShard(e: Enemy, dt: number, world: World, nx: number, ny: number, d: number): void {
+    // Approach, flash windup, then a fast linear dash.
+    switch (e.phase) {
+      case SH_SEEK:
+        e.vx += (nx * e.speed - e.vx) * damp(5, dt);
+        e.vy += (ny * e.speed - e.vy) * damp(5, dt);
+        e.rot = Math.atan2(ny, nx);
+        e.fireT -= dt;
+        if (e.fireT <= 0 && d < 320) {
+          e.phase = SH_WINDUP;
+          e.phaseT = 0;
+        }
+        break;
+      case SH_WINDUP:
+        e.vx *= 1 - Math.min(1, 8 * dt);
+        e.vy *= 1 - Math.min(1, 8 * dt);
+        e.rot = Math.atan2(ny, nx);
+        e.flash = 0.05;
+        if (e.phaseT > 0.4) {
+          e.phase = SH_DASH;
+          e.phaseT = 0;
+          e.vx = nx * 560;
+          e.vy = ny * 560;
+          world.audio.play('crack');
+        }
+        break;
+      case SH_DASH:
+        if (e.phaseT > 0.3) {
+          e.phase = SH_SEEK;
+          e.fireT = rand(1.3, 2.1);
+        }
+        break;
+    }
+    e.phaseT += dt;
+  }
+
+  private steerFlake(e: Enemy, dt: number, world: World, nx: number, ny: number, d: number): void {
+    // Slow drifting snowflake, rotates lazily, fires freezing orbs.
+    const slip = Math.sin(e.t * 2.4 + e.seed) * 20;
+    e.vx += ((nx * e.speed - ny * slip) - e.vx) * damp(2, dt);
+    e.vy += ((ny * e.speed + nx * slip) - e.vy) * damp(2, dt);
+    e.rot += dt * 1.2;
+    e.fireT -= dt;
+    if (e.fireT <= 0 && d < 350) {
+      e.fireT = rand(2.5, 3.5);
+      const aim = Math.atan2(ny, nx);
+      world.enemyShots.spawnIce(e.x, e.y, aim + rand(-0.15, 0.15), 170, e.dmg * 0.7, 0.8);
+      world.audio.play('freeze');
+    }
+  }
+
+  private steerGeyser(e: Enemy, dt: number, world: World, nx: number, ny: number): void {
+    // Nearly stationary crystal spire that spawns ice patches.
+    e.vx += (nx * e.speed - e.vx) * damp(1.2, dt);
+    e.vy += (ny * e.speed - e.vy) * damp(1.2, dt);
+    e.rot += dt * 0.5;
+    e.fireT -= dt;
+    if (e.fireT <= 0) {
+      e.fireT = rand(3, 4.5);
+      world.enemyShots.spawnPatch(e.x + rand(-10, 10), e.y + rand(-10, 10), e.dmg * 0.75, 3);
+      world.particles.ring(e.x, e.y, SPECS.geyser.color, 6, 30, 0.4, 3);
+      world.audio.play('crack');
+    }
+  }
+
+  private steerGlacier(e: Enemy, dt: number, world: World, nx: number, ny: number, d: number): void {
+    // Heavy, slow ice block — emits freezing shockwaves.
+    e.vx += (nx * e.speed - e.vx) * damp(1.6, dt);
+    e.vy += (ny * e.speed - e.vy) * damp(1.6, dt);
+    e.rot -= dt * 0.3;
+    e.fireT -= dt;
+    if (e.fireT <= 0 && d < 300) {
+      e.fireT = rand(3.5, 5);
+      const count = 12;
+      const offset = rand(0, TAU);
+      for (let i = 0; i < count; i++) {
+        const a = offset + (i / count) * TAU;
+        world.enemyShots.spawnIce(e.x + Math.cos(a) * e.radius, e.y + Math.sin(a) * e.radius, a, 110, e.dmg * 0.4, 0.5);
+      }
+      world.particles.ring(e.x, e.y, SPECS.glacier.color, 14, 300, 0.5, 4);
+      world.audio.play('shatter');
+    }
+  }
+
   private steerArchivist(e: Enemy, dt: number, world: World, nx: number, ny: number, d: number): void {
     e.rot -= dt * 0.36;
     e.phaseT += dt;
@@ -811,6 +951,102 @@ export class Enemies {
     if (e.hp <= 0) this.kill(e, world, killer);
   }
 
+  private steerZero(e: Enemy, dt: number, world: World, nx: number, ny: number, d: number): void {
+    e.rot += dt * 0.3;
+    e.phaseT += dt;
+    const enrage = e.hp < e.maxHp * 0.35 ? 0.65 : 1;
+
+    switch (e.phase) {
+      case Z_CHASE: {
+        // Orbit at mid-range, firing ice orbs.
+        const side = Math.sin(e.seed) >= 0 ? 1 : -1;
+        let tx = -ny * side * e.speed * 0.9;
+        let ty = nx * side * e.speed * 0.9;
+        if (d > 280) {
+          tx += nx * e.speed;
+          ty += ny * e.speed;
+        } else if (d < 190) {
+          tx -= nx * e.speed;
+          ty -= ny * e.speed;
+        }
+        e.vx += (tx - e.vx) * damp(2.2, dt);
+        e.vy += (ty - e.vy) * damp(2.2, dt);
+        e.fireT -= dt;
+        if (e.fireT <= 0) {
+          e.fireT = rand(0.6, 1) * enrage;
+          const aim = Math.atan2(ny, nx);
+          world.enemyShots.spawnIce(e.x + Math.cos(aim) * e.radius, e.y + Math.sin(aim) * e.radius, aim + rand(-0.2, 0.2), 160, e.dmg * 0.45, 1);
+          world.audio.play('freeze');
+        }
+        // Enrage: also summon shards.
+        if (enrage < 1) {
+          e.bladeCd -= dt;
+          if (e.bladeCd <= 0) {
+            e.bladeCd = 3.5;
+            const hpMul = e.maxHp / SPECS.zero.hp;
+            const dmgMul = e.dmg / SPECS.zero.dmg;
+            for (let i = 0; i < 3; i++) {
+              const a = rand(0, TAU);
+              this.pendingSpawn.push({ kind: 'shard', x: e.x + Math.cos(a) * e.radius, y: e.y + Math.sin(a) * e.radius, hpMul, dmgMul });
+            }
+            world.particles.ring(e.x, e.y, SPECS.zero.color, 10, 280, 0.4, 4);
+            world.audio.play('shatter');
+          }
+        }
+        if (e.phaseT > 3.5 * enrage) {
+          e.phase = Z_GEYSER;
+          e.phaseT = 0;
+          e.volleys = 0;
+        }
+        break;
+      }
+      case Z_GEYSER: {
+        // Plant ice geysers around the arena.
+        e.vx *= 1 - Math.min(1, 4 * dt);
+        e.vy *= 1 - Math.min(1, 4 * dt);
+        if (e.volleys < 4 && e.phaseT > 0.6 * enrage) {
+          e.phaseT = 0;
+          e.volleys++;
+          const a = rand(0, TAU);
+          const dist = rand(100, 220);
+          const gx = e.x + Math.cos(a) * dist;
+          const gy = e.y + Math.sin(a) * dist;
+          world.enemyShots.spawnPatch(gx, gy, e.dmg * 0.5, 4);
+          world.particles.ring(gx, gy, SPECS.geyser.color, 8, 40, 0.5, 3);
+          world.audio.play('crack');
+        }
+        if (e.phaseT > 2.8 * enrage) {
+          e.phase = Z_BEAM;
+          e.phaseT = 0;
+          e.fireT = 0;
+        }
+        break;
+      }
+      case Z_BEAM: {
+        // Freezing beam: rapid narrow fan of ice orbs.
+        e.vx *= 1 - Math.min(1, 5 * dt);
+        e.vy *= 1 - Math.min(1, 5 * dt);
+        e.flash = 0.05;
+        e.fireT -= dt;
+        if (e.fireT <= 0) {
+          e.fireT = 0.18 * enrage;
+          const p = world.nearestPlayer(e.x, e.y);
+          const aim = p ? Math.atan2(p.y - e.y, p.x - e.x) : Math.atan2(ny, nx);
+          for (let i = -2; i <= 2; i++) {
+            world.enemyShots.spawnIce(e.x + Math.cos(aim) * e.radius, e.y + Math.sin(aim) * e.radius, aim + i * 0.1, 220, e.dmg * 0.28, 0.6);
+          }
+          world.audio.play('freeze');
+        }
+        if (e.phaseT > 1.4 * enrage) {
+          e.phase = Z_CHASE;
+          e.phaseT = 0;
+          e.fireT = 0.5;
+        }
+        break;
+      }
+    }
+  }
+
   private kill(e: Enemy, world: World, killer: Player | null): void {
     e.dead = true;
     const debris = this.debris.get(e.kind);
@@ -828,7 +1064,7 @@ export class Enemies {
     if (big) world.shake(8);
 
     // Loot
-    const heavy = e.kind === 'tank' || e.kind === 'beetle' || e.kind === 'monolith';
+    const heavy = e.kind === 'tank' || e.kind === 'beetle' || e.kind === 'monolith' || e.kind === 'glacier';
     world.pickups.spawnGems(e.x, e.y, e.xp);
     if (isBossKind(e.kind)) {
       world.pickups.spawnCoins(e.x, e.y, randInt(BAL.drops.bossCoins[0], BAL.drops.bossCoins[1]));
@@ -862,6 +1098,15 @@ export class Enemies {
         { kind: 'mini', x: e.x - 10, y: e.y, hpMul: e.maxHp / SPECS.splitter.hp, dmgMul: e.dmg / SPECS.splitter.dmg },
         { kind: 'mini', x: e.x + 10, y: e.y, hpMul: e.maxHp / SPECS.splitter.hp, dmgMul: e.dmg / SPECS.splitter.dmg },
       );
+    }
+
+    if (e.kind === 'shard') {
+      const offset = rand(0, TAU);
+      for (let i = 0; i < 3; i++) {
+        const a = offset + (i / 3) * TAU + rand(-0.2, 0.2);
+        world.enemyShots.spawn(e.x, e.y, a, 200, e.dmg * 0.4);
+      }
+      world.audio.play('shatter');
     }
 
     if (e === this.boss) {
