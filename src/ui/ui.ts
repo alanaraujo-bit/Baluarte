@@ -6,6 +6,7 @@ import { CAMPAIGN } from '../game/campaign';
 import { CODEX, CODEX_INTRO, type CodexCategoryId, type CodexEntry } from '../game/codex';
 import { META_DEFS, metaCost, metaLevel } from '../game/meta';
 import { SHIP_SHAPE } from '../game/player';
+import { SKINS, skinById } from '../game/skins';
 import { formatBRL, STORE_PACKS, type StorePackDef } from '../game/store';
 import { paintIcon, type UpgradeDef } from '../game/upgrades';
 import { drawSprite, shapeSprite } from '../fx/sprites';
@@ -434,6 +435,13 @@ export class UI {
     s.appendChild(el('h2', 'heading', S.shopTitle));
     s.appendChild(el('div', 'subheading', S.shopSub));
 
+    // Tab row: melhorias / skins
+    const tabs = el('div', 'row codex-tabs shop-tabs');
+    const showMeta = (): void => this.showShop();
+    tabs.appendChild(this.codexTabBtn(S.upgrades, true, showMeta));
+    tabs.appendChild(this.codexTabBtn(S.skinTab, false, () => this.showSkinShop()));
+    s.appendChild(tabs);
+
     const list = el('div', 'scroll list');
     for (const def of META_DEFS) {
       const lvl = metaLevel(this.save.data, def.id);
@@ -474,6 +482,114 @@ export class UI {
     s.appendChild(list);
     this.open('shop');
   }
+
+  // ————— skins (no hangar) —————
+
+  showSkinShop(): void {
+    this.hideAll();
+    const s = this.screen('skinsshop');
+
+    const header = el('div', 'row header');
+    header.appendChild(this.btn(`‹ ${S.back}`, 'ghost small', () => this.showShop()));
+    header.appendChild(el('div', 'grow'));
+    header.appendChild(this.coinChip(this.save.data.coins, () => this.showStore()));
+    s.appendChild(header);
+
+    s.appendChild(el('h2', 'heading', S.skins));
+    s.appendChild(el('div', 'subheading', S.skinsSub));
+
+    const list = el('div', 'scroll col cards mode-list');
+    const owned = new Set(this.save.data.ownedSkins);
+    const current = this.save.data.skin;
+
+    SKINS.forEach((skin, i) => {
+      const isOwned = skin.price === 0 || owned.has(skin.id);
+      const isEquipped = current === skin.id;
+      const card = el('button', `card skin-card${isOwned ? '' : ' locked'}${isEquipped ? ' equipped' : ''}`);
+      card.style.setProperty('--i', String(i));
+      card.style.setProperty('--accent', skin.color);
+
+      // Ship icon
+      const icon = el('div', 'icon-wrap skin-icon-wrap');
+      icon.appendChild(this.skinIcon(skin, 44));
+      card.appendChild(icon);
+
+      const body = el('div', 'grow');
+      body.appendChild(el('div', 'item-name', skin.name));
+      body.appendChild(el('div', 'item-desc', skin.desc));
+
+      // Price or status
+      if (isOwned) {
+        const status = el('div', 'skin-status');
+        if (isEquipped) {
+          status.appendChild(el('span', 'chip small equipped-chip', `${S.equipped} ✓`));
+        } else {
+          status.appendChild(this.btn(S.equip, 'ghost small', () => {
+            if (this.save.data.skin === skin.id) return;
+            this.save.data.skin = skin.id;
+            this.save.persist();
+            this.audio.play('confirm');
+            this.showSkinShop();
+          }));
+        }
+        body.appendChild(status);
+      } else {
+        const afford = this.save.data.coins >= skin.price;
+        const priceBtn = this.btn(String(skin.price), `buy small${afford ? '' : ' locked'}`, () => {
+          if (this.save.data.coins < skin.price) {
+            this.audio.play('deny');
+            return;
+          }
+          this.save.data.coins -= skin.price;
+          this.save.data.ownedSkins.push(skin.id);
+          this.save.data.skin = skin.id;
+          this.save.persist();
+          this.audio.play('buy');
+          this.showSkinShop();
+        });
+        priceBtn.prepend(el('span', 'coin-dot'));
+        body.appendChild(priceBtn);
+      }
+      card.appendChild(body);
+      card.appendChild(el('span', 'mode-chevron', isEquipped ? '✓' : isOwned ? '' : '🔒'));
+
+      card.addEventListener('pointerdown', () => this.audio.play('tap'));
+      card.addEventListener('click', () => {
+        if (!isOwned) {
+          this.audio.play('deny');
+          return;
+        }
+        if (isEquipped) return;
+        this.save.data.skin = skin.id;
+        this.save.persist();
+        this.audio.play('confirm');
+        this.showSkinShop();
+      });
+      list.appendChild(card);
+    });
+
+    s.appendChild(list);
+    this.open('skinsshop');
+  }
+
+  /** Paint a single skin's ship into a canvas icon (for skin cards). */
+  private skinIcon(sd: typeof SKINS[number], size: number): HTMLCanvasElement {
+    const canvas = document.createElement('canvas');
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = canvas.height = size * dpr;
+    canvas.style.width = canvas.style.height = `${size}px`;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return canvas;
+    ctx.scale(dpr, dpr);
+    const sprite = shapeSprite({
+      radius: 17, color: sd.color, points: sd.shape,
+      fillAlpha: sd.fillAlpha ?? 0.3, innerDetail: sd.innerDetail,
+    });
+    const scale = (size * 0.36) / sprite.half;
+    drawSprite(ctx, sprite, size / 2, size / 2, 0, scale);
+    return canvas;
+  }
+
 
   // ————— coin store (real-money packs) —————
 
@@ -1545,6 +1661,33 @@ export class UI {
     });
   }
 
+  // ————— render skin preview canvas —————
+
+  private renderSkinPreview(skinId: string, size = 64): HTMLCanvasElement {
+    const sd = skinById(skinId);
+    const canvas = document.createElement('canvas');
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = canvas.height = size * dpr;
+    canvas.style.width = canvas.style.height = `${size}px`;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return canvas;
+    ctx.scale(dpr, dpr);
+    const sprite = shapeSprite({
+      radius: 17, color: sd.color, points: sd.shape,
+      fillAlpha: sd.fillAlpha ?? 0.3, innerDetail: sd.innerDetail,
+    });
+    const scale = (size * 0.38) / sprite.half;
+    drawSprite(ctx, sprite, size / 2, size / 2, 0, scale);
+    // Glow aura
+    ctx.shadowColor = sd.color;
+    ctx.shadowBlur = 14;
+    ctx.globalAlpha = 0.2;
+    drawSprite(ctx, sprite, size / 2, size / 2, 0, scale * 1.3);
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
+    return canvas;
+  }
+
   // ————— leaderboard —————
 
   showLeaderboard(): void {
@@ -1680,6 +1823,13 @@ export class UI {
     if (!body.isConnected) return;
     body.innerHTML = '';
 
+    // Skin preview (equipped skin) at the top
+    const ownSkinId = own ? this.save.data.skin : 'aegis';
+    const skinPreview = el('div', 'profile-skin-preview');
+    skinPreview.appendChild(this.renderSkinPreview(ownSkinId, 70));
+    body.appendChild(skinPreview);
+
+    // Profile head: name, handle, member since, last online
     const head = el('div', 'panel profile-head');
     head.appendChild(el('div', 'profile-name', profile.name));
     head.appendChild(el('div', 'profile-handle', `@${profile.handle}`));
@@ -1696,6 +1846,7 @@ export class UI {
     }
     body.appendChild(head);
 
+    // Ranks row (top 3 badge when applicable)
     const ranks = el('div', 'row chips profile-ranks');
     const rankChip = (label: string, rank: number | null): HTMLElement =>
       el('span', `chip${rank !== null && rank <= 3 ? ' chip-coins' : ''}`,
@@ -1705,20 +1856,21 @@ export class UI {
     ranks.appendChild(rankChip(S.rankTime, profile.ranks.time));
     body.appendChild(ranks);
 
-    const grid = el('div', 'panel results profile-grid');
-    const addRow = (label: string, value: string): void => {
-      const row = el('div', 'row result-row');
-      row.appendChild(el('span', 'grow item-desc', label));
-      row.appendChild(el('span', 'result-value', value));
-      grid.appendChild(row);
+    // Stats grid — compact, two-column style
+    const grid = el('div', 'panel profile-stats-grid');
+    const addStat = (label: string, value: string): void => {
+      const cell = el('div', 'profile-stat-cell');
+      cell.appendChild(el('span', 'profile-stat-value', value));
+      cell.appendChild(el('span', 'profile-stat-label', label));
+      grid.appendChild(cell);
     };
-    addRow(S.bestWave, profile.stats.bestWave > 0 ? String(profile.stats.bestWave) : '—');
-    addRow(S.bestScoreL, String(profile.stats.bestScore));
-    addRow(S.bestTimeL, fmtTime(profile.stats.bestTime));
-    addRow(S.bestCoinsL, String(profile.stats.bestCoins));
-    addRow(S.runs, String(profile.stats.runs));
-    addRow(S.totalKills, String(profile.stats.totalKills));
-    addRow(S.totalTimeL, fmtLongTime(profile.stats.totalTime));
+    addStat(profile.stats.bestWave > 0 ? String(profile.stats.bestWave) : '—', S.bestWave);
+    addStat(String(profile.stats.bestScore), S.bestScoreL);
+    addStat(fmtTime(profile.stats.bestTime), 'Maior tempo');
+    addStat(String(profile.stats.bestCoins), 'Mais moedas');
+    addStat(String(profile.stats.runs), S.runs);
+    addStat(String(profile.stats.totalKills), S.totalKills);
+    addStat(fmtLongTime(profile.stats.totalTime), 'Tempo total');
     body.appendChild(grid);
 
     if (own && session.authed) {

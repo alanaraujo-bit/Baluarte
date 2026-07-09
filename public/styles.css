@@ -1112,6 +1112,56 @@ html, body {
 /* ————— profile ————— */
 
 .profile-body { margin-top: 8px; }
+
+/* ————— skin preview no perfil ————— */
+.profile-skin-preview {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 6px;
+  padding: 10px;
+}
+.profile-skin-preview canvas {
+  filter: drop-shadow(0 0 12px rgba(53, 240, 255, 0.35));
+}
+
+/* ————— stats grid compacta (2 colunas) ————— */
+.profile-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid var(--panel-line);
+  background: rgba(88, 130, 255, 0.06);
+  margin-top: 8px;
+}
+.profile-stat-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 8px;
+  background: var(--panel);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.profile-stat-value {
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+.profile-stat-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--dim);
+  margin-top: 3px;
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+
 .profile-head { padding: 18px; text-align: center; }
 .profile-name {
   font-size: 24px;
@@ -1150,7 +1200,7 @@ html, body {
   color: var(--green);
   text-shadow: 0 0 8px rgba(82, 255, 168, 0.5);
 }
-.profile-grid { margin: 0; }
+.profile-grid { margin: 0; } /* kept for backward compat */
 .profile-actions { max-width: none; margin-top: 4px; }
 .profile-actions .danger { margin-top: 0; }
 
@@ -1354,3 +1404,60 @@ html, body {
 .coop-card .item-name { font-size: 11px; }
 .coop-card .pips { justify-content: center; }
 .coop-result { margin-bottom: 8px; }
+
+/* ————— skins ————— */
+.shop-tabs {
+  justify-content: center;
+  gap: 8px;
+  margin: 14px 0 10px;
+  padding: 0;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+.skin-card {
+  min-height: 84px;
+  padding: 14px 16px;
+}
+.skin-card .item-name {
+  font-size: 15px;
+}
+.skin-card .item-desc {
+  font-size: 11px;
+  margin-top: 3px;
+}
+.skin-card.equipped {
+  border-color: var(--green);
+  box-shadow: 0 0 14px rgba(82, 255, 168, 0.15);
+}
+.skin-card .mode-chevron {
+  font-size: 20px;
+}
+.skin-card.locked {
+  opacity: 0.6;
+}
+.skin-card.locked .mode-chevron {
+  font-size: 18px;
+}
+
+.skin-icon-wrap {
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
+}
+.skin-icon-wrap canvas {
+  filter: drop-shadow(0 0 8px rgba(53, 240, 255, 0.2));
+}
+
+.skin-status {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.equipped-chip {
+  color: var(--green);
+  border-color: rgba(82, 255, 168, 0.4);
+  font-size: 10px;
+  padding: 3px 10px;
+}

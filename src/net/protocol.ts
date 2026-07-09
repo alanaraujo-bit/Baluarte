@@ -23,6 +23,8 @@ export interface CloudSave {
   settings: Settings | null;
   campaignLevel: number;
   campaignStars: Record<string, number>;
+  skin: string;
+  ownedSkins: string[];
 }
 
 export interface PlayerInfo {
@@ -147,6 +149,8 @@ export const SAVE_LIMITS = {
   totalKills: 50_000_000,
   totalTime: 20_000 * 3600,
   campaignLevel: 11,
+  /** Máximo de skins que qualquer um pode ter (5 pagas + 1 padrão). */
+  ownedSkins: 6,
 } as const;
 
 function num(v: unknown, max: number): number {
@@ -237,6 +241,10 @@ export function clampCloudSave(raw: Partial<CloudSave> | null | undefined): Clou
     campaignStars: (r.campaignStars && typeof r.campaignStars === 'object')
       ? { ...(r.campaignStars as Record<string, number>) }
       : {},
+    skin: typeof r.skin === 'string' ? r.skin.slice(0, 32) : 'aegis',
+    ownedSkins: Array.isArray(r.ownedSkins)
+      ? r.ownedSkins.filter((s): s is string => typeof s === 'string').slice(0, SAVE_LIMITS.ownedSkins)
+      : [],
   };
 }
 
@@ -266,6 +274,8 @@ export function mergeCloudSaves(a: CloudSave, b: CloudSave, coinsFrom: 'max' | '
     settings: a.settings ?? b.settings,
     campaignLevel: Math.max(a.campaignLevel, b.campaignLevel),
     campaignStars: { ...b.campaignStars, ...a.campaignStars },
+    skin: a.skin !== 'aegis' ? a.skin : b.skin,
+    ownedSkins: [...new Set([...b.ownedSkins, ...a.ownedSkins])],
   };
 }
 
@@ -286,6 +296,8 @@ export function cloudFromSave(d: SaveData): CloudSave {
     settings: d.settings,
     campaignLevel: d.campaignLevel,
     campaignStars: { ...d.campaignStars },
+    skin: d.skin,
+    ownedSkins: [...d.ownedSkins],
   });
 }
 
@@ -308,4 +320,6 @@ export function applyCloudToSave(d: SaveData, c: CloudSave): void {
   if (c.settings) d.settings = { ...d.settings, ...c.settings, graphics: c.settings.graphics ?? d.settings.graphics };
   d.campaignLevel = c.campaignLevel;
   d.campaignStars = { ...c.campaignStars, ...d.campaignStars };
+  d.skin = c.skin !== 'aegis' ? c.skin : d.skin;
+  d.ownedSkins = [...new Set([...c.ownedSkins, ...d.ownedSkins])];
 }

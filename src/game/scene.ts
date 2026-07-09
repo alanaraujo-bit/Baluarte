@@ -24,6 +24,7 @@ import { computeStats, rollChoices } from './upgrades';
 import { WaveDirector, type Director } from './waves';
 import { Nova, Orbitals } from './weapons';
 import type { World } from './world';
+import { skinById, SKINS } from './skins';
 import type { LevelStats, RunStats, UI } from '../ui/ui';
 
 export interface GameDeps {
@@ -101,10 +102,16 @@ export class GameScene implements Scene, World {
   constructor(private readonly deps: GameDeps) {
     this.audio = deps.audio;
     this.input = deps.game.input;
-    this.player = new Player(computeStats(deps.save.data, this.lv));
+    const skinId = deps.save.data.skin;
+    this.player = new Player(computeStats(deps.save.data, this.lv), skinId);
     this.players = [this.player];
     this.particles.quality = deps.save.data.settings.graphics.particleQuality;
     this.deathDot = glowDot(10, '#9ff2ff');
+    // Aplica skin às armas e projéteis.
+    const sd = skinById(skinId);
+    this.playerShots.setSkin(sd);
+    this.orbitals.setSkin(sd);
+    this.nova.setSkin(sd);
     if (deps.tutorial) {
       this.tutorialDir = new TutorialDirector({ ui: deps.ui, save: deps.save, hooks: deps.tutorial });
       this.waves = this.tutorialDir;
@@ -672,6 +679,7 @@ export class GameScene implements Scene, World {
     hv.coins = this.coinsRun;
     hv.combo = this.combo;
     hv.hideWave = this.tutorialDir !== null;
+    hv.skinAccent = this.player.skinDef.accent;
     const boss = this.enemies.boss;
     hv.boss = boss
       ? { hp: boss.hp, maxHp: boss.maxHp, name: (this.waves.bossInfo?.() ?? sectorForWave(this.waves.wave).boss).name }

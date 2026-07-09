@@ -121,6 +121,10 @@ export interface SaveData {
   campaignLevel: number;
   /** Best stars earned per campaign level ID (0 = unplayed, 1-3 = stars). */
   campaignStars: Record<string, number>;
+  /** Equipped skin ID (default 'aegis'). */
+  skin: string;
+  /** Owned skin IDs (purchased with coins). */
+  ownedSkins: string[];
 }
 
 const GUEST_KEY = 'vanguarda.save.v1';
@@ -148,6 +152,8 @@ function defaults(): SaveData {
     },
     campaignLevel: 1,
     campaignStars: {},
+    skin: 'aegis',
+    ownedSkins: [],
   };
 }
 
@@ -173,6 +179,8 @@ function parse(raw: string): SaveData {
     ...parsed,
     meta: { ...(parsed.meta ?? {}) },
     campaignStars: (parsed.campaignStars ?? {}),
+    skin: typeof parsed.skin === 'string' ? parsed.skin : 'aegis',
+    ownedSkins: Array.isArray(parsed.ownedSkins) ? parsed.ownedSkins : [],
     settings: { ...base.settings, ...(parsed.settings ?? {}), graphics },
   };
   // v1 → v2: veterans never see the forced onboarding flow.

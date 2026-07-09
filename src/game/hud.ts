@@ -28,6 +28,8 @@ export interface HudView {
   } | null;
   /** Co-op: smoothed round-trip time in ms. */
   ping?: number;
+  /** Skin accent color for HUD XP bar. */
+  skinAccent?: string;
 }
 
 const FONT = '"Segoe UI", system-ui, -apple-system, sans-serif';
@@ -60,8 +62,9 @@ export class Hud {
     this.bar(ctx, MARGIN, xpY, w - MARGIN * 2, 4, 2, 'rgba(255,255,255,0.09)');
     const xpRatio = clamp(v.xp / v.xpNeed, 0, 1);
     if (xpRatio > 0.01) {
+      const accent = v.skinAccent ?? '#35f0ff';
       const g = ctx.createLinearGradient(MARGIN, 0, w - MARGIN, 0);
-      g.addColorStop(0, '#35f0ff');
+      g.addColorStop(0, accent);
       g.addColorStop(1, '#52ffa8');
       this.bar(ctx, MARGIN, xpY, (w - MARGIN * 2) * xpRatio, 4, 2, g);
     }

@@ -1,11 +1,12 @@
 import { clamp, damp, len, TAU } from '../core/utils';
-import { drawSprite, glowDot, shapeSprite, SHIP_POINTS, type ShapeOptions, type Sprite } from '../fx/sprites';
+import { drawSprite, glowDot, shapeSprite, type ShapeOptions, type Sprite } from '../fx/sprites';
 import { BAL } from './balance';
 import type { Stats } from './upgrades';
 import type { World } from './world';
+import { SKINS, type SkinDef } from './skins';
 
 /** Shared with the Codex so its ship icon matches the arena exactly. */
-export const SHIP_SHAPE: ShapeOptions = { radius: 17, color: '#35f0ff', points: SHIP_POINTS, fillAlpha: 0.3 };
+export const SHIP_SHAPE: ShapeOptions = { radius: 17, color: SKINS[0].color, points: SKINS[0].shape, fillAlpha: SKINS[0].fillAlpha ?? 0.3 };
 
 function angleLerp(a: number, b: number, t: number): number {
   let d = (b - a) % TAU;
@@ -41,6 +42,8 @@ export class Player {
    */
   readonly intent = { mx: 0, my: 0 };
 
+  /** Skin applied to this player (defaults to Aegis). */
+  skinDef: SkinDef;
   /** Hull tint override (co-op paints the partner's ship differently). */
   shipColor: string | null = null;
 
@@ -52,8 +55,9 @@ export class Player {
   private thrust: Sprite | null = null;
   private hurtDot: Sprite | null = null;
 
-  constructor(public stats: Stats) {
+  constructor(public stats: Stats, skinId = 'aegis') {
     this.hp = stats.maxHp;
+    this.skinDef = SKINS.find((s) => s.id === skinId) ?? SKINS[0];
   }
 
   get intentMag(): number {
@@ -170,9 +174,13 @@ export class Player {
 
   private ensureSprites(): void {
     if (this.ship) return;
-    this.ship = shapeSprite(this.shipColor ? { ...SHIP_SHAPE, color: this.shipColor } : SHIP_SHAPE);
-    this.shipFlash = shapeSprite({ radius: 17, color: '#ffffff', points: SHIP_POINTS, fillAlpha: 0.6 });
-    this.thrust = glowDot(5, this.shipColor ?? '#35d5ff');
+    const sd = this.skinDef;
+    const color = this.shipColor ?? sd.color;
+    this.ship = shapeSprite({
+      radius: 17, color, points: sd.shape, fillAlpha: sd.fillAlpha ?? 0.3, innerDetail: sd.innerDetail,
+    });
+    this.shipFlash = shapeSprite({ radius: 17, color: '#ffffff', points: sd.shape, fillAlpha: 0.6 });
+    this.thrust = glowDot(5, color);
     this.hurtDot = glowDot(6, '#ff3b5c');
   }
 

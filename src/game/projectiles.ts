@@ -5,6 +5,7 @@ import { drawSprite, glowDot, shapeSprite, BOLT_POINTS, type Sprite } from '../f
 import { BAL } from './balance';
 import type { Enemy } from './enemies';
 import type { Player } from './player';
+import { SKINS, type SkinDef } from './skins';
 import type { World } from './world';
 
 export interface Shot {
@@ -39,6 +40,17 @@ export class PlayerShots {
   private boltCrit: Sprite | null = null;
   private spark: Sprite | null = null;
   private muzzle: Sprite | null = null;
+
+  private skin: SkinDef | null = null;
+
+  /** Update bullet sprites when the player's skin changes (called once per run start). */
+  setSkin(sd: SkinDef): void {
+    this.skin = sd;
+    this.bolt = null;
+    this.boltCrit = null;
+    this.spark = null;
+    this.muzzle = null;
+  }
 
   spawnVolley(owner: Player, angle: number, world: World): void {
     const s = owner.stats;
@@ -140,10 +152,11 @@ export class PlayerShots {
 
   private ensureSprites(): void {
     if (this.bolt) return;
-    this.bolt = shapeSprite({ radius: 7, color: '#35f0ff', points: BOLT_POINTS, fillAlpha: 0.5 });
-    this.boltCrit = shapeSprite({ radius: 9, color: '#ffc857', points: BOLT_POINTS, fillAlpha: 0.55 });
-    this.spark = glowDot(4, '#7df3ff');
-    this.muzzle = glowDot(7, '#b5faff');
+    const sd = this.skin ?? SKINS[0];
+    this.bolt = shapeSprite({ radius: 7, color: sd.bulletColor, points: BOLT_POINTS, fillAlpha: 0.5 });
+    this.boltCrit = shapeSprite({ radius: 9, color: sd.bulletCritColor, points: BOLT_POINTS, fillAlpha: 0.55 });
+    this.spark = glowDot(4, sd.sparkColor);
+    this.muzzle = glowDot(7, sd.muzzleColor);
   }
 
   render(ctx: CanvasRenderingContext2D, camX: number, camY: number, vpW: number, vpH: number): void {

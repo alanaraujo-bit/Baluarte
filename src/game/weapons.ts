@@ -1,5 +1,6 @@
 import { dist2, TAU } from '../core/utils';
 import { drawSprite, glowDot, shapeSprite, BLADE_POINTS, type Sprite } from '../fx/sprites';
+import { SKINS, type SkinDef } from './skins';
 import type { Player } from './player';
 import type { World } from './world';
 
@@ -14,6 +15,7 @@ export class Orbitals {
   private angle = 0;
   private blade: Sprite | null = null;
   private bladeLvl = 0;
+  private currentSkin: SkinDef = SKINS[0];
 
   update(dt: number, world: World, p: Player): void {
     const lvl = p.stats.bladeLevel;
@@ -40,19 +42,28 @@ export class Orbitals {
     }
   }
 
+  /** Track the player's skin so blades render in the right color. */
+  setSkin(sd: SkinDef): void {
+    if (this.currentSkin.id !== sd.id) {
+      this.currentSkin = sd;
+      this.blade = null;
+    }
+  }
+
   render(ctx: CanvasRenderingContext2D, p: Player): void {
     const lvl = p.stats.bladeLevel;
     if (lvl <= 0) return;
-    if (!this.blade || this.bladeLvl !== lvl) {
+    if (!this.blade || this.bladeLvl !== lvl || this.currentSkin.id !== p.skinDef.id) {
+      this.currentSkin = p.skinDef;
       // Bigger, denser blades per level — otherwise an extra blade in a
       // crowded swarm reads as just another enemy sliver, not a power-up.
-      this.blade = shapeSprite({ radius: 9 + lvl * 2.2, color: '#7df3ff', points: BLADE_POINTS, fillAlpha: 0.34 + lvl * 0.05 });
+      this.blade = shapeSprite({ radius: 9 + lvl * 2.2, color: p.skinDef.bladeColor, points: BLADE_POINTS, fillAlpha: 0.34 + lvl * 0.05 });
       this.bladeLvl = lvl;
     }
     const count = 1 + lvl;
 
     ctx.globalAlpha = 0.14;
-    ctx.strokeStyle = '#35f0ff';
+    ctx.strokeStyle = p.skinDef.accent;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.arc(p.x, p.y, BLADE_ORBIT, 0, TAU);
@@ -72,6 +83,7 @@ export class Orbitals {
 export class Nova {
   private timer = 0;
   private chargeDot: Sprite | null = null;
+  private currentSkin: SkinDef = SKINS[0];
 
   cooldown(lvl: number): number {
     return Math.max(3.2, 5.8 - 0.55 * lvl);
@@ -103,13 +115,24 @@ export class Nova {
     }
   }
 
+  /** Track the player's skin so nova renders in the right color. */
+  setSkin(sd: SkinDef): void {
+    if (this.currentSkin.id !== sd.id) {
+      this.currentSkin = sd;
+      this.chargeDot = null;
+    }
+  }
+
   render(ctx: CanvasRenderingContext2D, p: Player, time: number): void {
     const lvl = p.stats.novaLevel;
     if (lvl <= 0) return;
     const cd = this.cooldown(lvl);
     const remaining = cd - this.timer;
     if (remaining < 0.45) {
-      if (!this.chargeDot) this.chargeDot = glowDot(20, '#f368e0');
+      const sd = this.currentSkin.id !== p.skinDef.id ? (this.currentSkin = p.skinDef) : this.currentSkin;
+      if (!this.chargeDot || sd.id !== this.currentSkin.id) {
+        this.chargeDot = glowDot(20, sd.novaColor);
+      }
       const t = 1 - remaining / 0.45;
       ctx.globalCompositeOperation = 'lighter';
       drawSprite(ctx, this.chargeDot, p.x, p.y, 0, 0.4 + t * 1.1, t * 0.6);

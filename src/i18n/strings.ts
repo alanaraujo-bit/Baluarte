@@ -234,4 +234,18 @@ export const S = {
 
   // ————— campanha (estrelas) —————
   starReward: 'Bônus por estrelas',
+
+  // ————— skins —————
+  skins: 'SKINS',
+  skinsSub: 'Personalize sua nave. Cada skin muda o visual, as balas e os efeitos.',
+  equip: 'EQUIPAR',
+  equipped: 'EQUIPADA',
+  owned: 'POSSUÍDA',
+  skinDefault: 'Sempre disponível',
+  skinBuy: 'COMPRAR',
+  skinPurchased: 'Você já possui esta skin.',
+  skinEquippedNotice: 'Skin equipada com sucesso!',
+  skinPurchaseNotice: 'Nova skin adquirida!',
+  skinNotEnoughCoins: 'Moedas insuficientes.',
+  skinTab: 'FUSELAGEM',
 } as const;
