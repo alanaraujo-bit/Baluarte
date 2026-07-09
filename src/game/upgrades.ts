@@ -265,6 +265,62 @@ const PAINTERS: Record<string, IconPainter> = {
     c.arc(s / 2, s / 2, s * 0.16, 0, Math.PI * 2);
     c.stroke();
   },
+  // ————— coin store icons (scale with pack size) —————
+  coinBag: (c, s) => {
+    c.beginPath();
+    c.moveTo(s * 0.4, s * 0.22);
+    c.lineTo(s * 0.6, s * 0.22);
+    c.stroke();
+    c.beginPath();
+    c.moveTo(s * 0.4, s * 0.22);
+    c.bezierCurveTo(s * 0.16, s * 0.32, s * 0.12, s * 0.62, s * 0.28, s * 0.8);
+    c.bezierCurveTo(s * 0.38, s * 0.92, s * 0.62, s * 0.92, s * 0.72, s * 0.8);
+    c.bezierCurveTo(s * 0.88, s * 0.62, s * 0.84, s * 0.32, s * 0.6, s * 0.22);
+    c.closePath();
+    c.stroke();
+    c.beginPath();
+    c.arc(s * 0.5, s * 0.58, s * 0.1, 0, Math.PI * 2);
+    c.stroke();
+  },
+  coinChest: (c, s) => {
+    c.beginPath();
+    c.moveTo(s * 0.16, s * 0.5);
+    c.lineTo(s * 0.16, s * 0.8);
+    c.lineTo(s * 0.84, s * 0.8);
+    c.lineTo(s * 0.84, s * 0.5);
+    c.closePath();
+    c.stroke();
+    c.beginPath();
+    c.moveTo(s * 0.16, s * 0.5);
+    c.quadraticCurveTo(s * 0.5, s * 0.22, s * 0.84, s * 0.5);
+    c.stroke();
+    c.beginPath();
+    c.moveTo(s * 0.5, s * 0.42);
+    c.lineTo(s * 0.5, s * 0.62);
+    c.stroke();
+    c.beginPath();
+    c.arc(s * 0.5, s * 0.52, s * 0.07, 0, Math.PI * 2);
+    c.stroke();
+  },
+  coinChestOpen: (c, s) => {
+    c.beginPath();
+    c.moveTo(s * 0.14, s * 0.58);
+    c.lineTo(s * 0.14, s * 0.82);
+    c.lineTo(s * 0.86, s * 0.82);
+    c.lineTo(s * 0.86, s * 0.58);
+    c.closePath();
+    c.stroke();
+    c.beginPath();
+    c.moveTo(s * 0.14, s * 0.58);
+    c.lineTo(s * 0.22, s * 0.26);
+    c.lineTo(s * 0.7, s * 0.22);
+    c.stroke();
+    for (const [dx, dy, r] of [[-0.16, 0.5, 0.09], [0.14, 0.46, 0.1], [0, 0.36, 0.08]] as const) {
+      c.beginPath();
+      c.arc(s * 0.5 + s * dx, s * dy, s * r, 0, Math.PI * 2);
+      c.stroke();
+    }
+  },
 };
 
 function star(c: CanvasRenderingContext2D, cx: number, cy: number, r1: number, r2: number, points: number, rot: number): void {

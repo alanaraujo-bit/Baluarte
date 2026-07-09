@@ -512,7 +512,7 @@ export class UI {
       row.style.setProperty('--i', String(i));
 
       const icon = el('div', 'icon-wrap');
-      icon.appendChild(paintIcon('coin', '#ffc857', 38));
+      icon.appendChild(paintIcon(pack.icon, '#ffc857', 38));
       row.appendChild(icon);
 
       const body = el('div', 'grow');

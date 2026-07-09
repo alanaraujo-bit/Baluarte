@@ -5,14 +5,16 @@ export interface StorePackDef {
   coins: number;
   bonusCoins: number;
   priceCents: number; // BRL
+  /** Icon painter key (see PAINTERS in game/upgrades.ts) — scales with pack size. */
+  icon: string;
   badge?: 'popular' | 'best';
 }
 
 export const STORE_PACKS: readonly StorePackDef[] = [
-  { id: 'pack_s', name: 'Punhado de Moedas', coins: 500, bonusCoins: 0, priceCents: 490 },
-  { id: 'pack_m', name: 'Cofre de Moedas', coins: 1200, bonusCoins: 300, priceCents: 990, badge: 'popular' },
-  { id: 'pack_l', name: 'Baú Blindado', coins: 3000, bonusCoins: 1200, priceCents: 1990, badge: 'best' },
-  { id: 'pack_xl', name: 'Arsenal Completo', coins: 7000, bonusCoins: 5000, priceCents: 4990 },
+  { id: 'pack_s', name: 'Punhado de Moedas', coins: 500, bonusCoins: 0, priceCents: 490, icon: 'coin' },
+  { id: 'pack_m', name: 'Sacola de Moedas', coins: 1200, bonusCoins: 300, priceCents: 990, icon: 'coinBag', badge: 'popular' },
+  { id: 'pack_l', name: 'Baú Blindado', coins: 3000, bonusCoins: 1200, priceCents: 1990, icon: 'coinChest', badge: 'best' },
+  { id: 'pack_xl', name: 'Arsenal Completo', coins: 7000, bonusCoins: 5000, priceCents: 4990, icon: 'coinChestOpen' },
 ];
 
 export function packById(id: string): StorePackDef | undefined {
