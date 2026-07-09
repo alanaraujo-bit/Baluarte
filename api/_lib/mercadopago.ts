@@ -24,14 +24,16 @@ export interface PixCharge {
 /**
  * Creates a Pix payment via Mercado Pago's Payments API. `idempotencyKey`
  * should be the purchases.id row — a retry (e.g. a Vercel function retry)
- * reuses the same charge instead of billing twice.
+ * reuses the same charge instead of billing twice. Notifications are NOT
+ * set per-request here — the webhook URL is configured once in the Mercado
+ * Pago dashboard; sending notification_url on every payment too would fire
+ * the same event twice per Mercado Pago's own guidance.
  */
 export async function createPixCharge(opts: {
   amountCents: number;
   description: string;
   payerEmail: string;
   externalReference: string;
-  notificationUrl: string;
   idempotencyKey: string;
 }): Promise<PixCharge> {
   const res = await fetch(`${MP_API}/v1/payments`, {
@@ -47,7 +49,6 @@ export async function createPixCharge(opts: {
       payment_method_id: 'pix',
       payer: { email: opts.payerEmail },
       external_reference: opts.externalReference,
-      notification_url: opts.notificationUrl,
     }),
   });
   if (!res.ok) {

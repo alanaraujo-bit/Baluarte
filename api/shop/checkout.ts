@@ -69,15 +69,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     );
     purchaseId = inserted.rows[0].id as string;
 
-    const proto = process.env.VERCEL_ENV && process.env.VERCEL_ENV !== 'development' ? 'https' : 'http';
-    const notificationUrl = `${proto}://${req.headers.host}/api/shop/webhook`;
-
     const charge = await createPixCharge({
       amountCents: pack.priceCents,
       description: `BALUARTE — ${pack.name}`,
       payerEmail: email,
       externalReference: purchaseId,
-      notificationUrl,
       idempotencyKey: purchaseId,
     });
 
