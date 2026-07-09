@@ -709,6 +709,26 @@ function joystickSkinCodexIcon(skin: typeof JOYSTICK_SKINS[number], size = 48): 
   return canvas;
 }
 
+const skinEntries: CodexEntry[] = SKINS.map((skin) => ({
+  id: `ship-skin-${skin.id}`,
+  name: skin.name,
+  tagline: skin.desc,
+  lore: skin.price === 0
+    ? 'O casco Aegis é o padrão da frota — sem frescuras, sem custo, com a assinatura ciano que todo piloto reconhece. O desenho triangular clássico oferece o melhor equilíbrio entre agilidade e presença de combate.'
+    : `Um casco personalizado forjado nos estaleiros da resistência. Adquirido no Hangar por ${skin.price} moedas, ele altera a silhueta, o brilho do casco e a cor dos disparos — cada detalhe pensado para fazer sua nave ser reconhecida em meio ao caos da batalha.`,
+  tactic: skin.price === 0
+    ? 'Sempre disponível, sem custo. O desempenho é idêntico ao de qualquer outra skin — a escolha é puramente estética e não afeta a jogabilidade.'
+    : 'Cada casca tem sua própria silhueta e paleta de cores, mas nenhuma oferece vantagem mecânica: a escolha é puramente estética. Compre no Hangar pela aba NAVE e equipe quantas quiser — a skin ativa persiste entre partidas.',
+  accent: skin.accent,
+  icon: skinCodexIcon(skin, 52),
+  stats: [
+    { label: 'Preço', value: skin.price === 0 ? 'Grátis (padrão)' : `${skin.price} moedas` },
+    { label: 'Cor do casco', value: skin.color },
+    { label: 'Tom dos disparos', value: skin.bulletColor },
+    { label: 'Acento na HUD', value: skin.accent },
+  ],
+}));
+
 const joystickSkinEntries: CodexEntry[] = JOYSTICK_SKINS.map((skin) => ({
   id: `joystick-${skin.id}`,
   name: skin.name,
