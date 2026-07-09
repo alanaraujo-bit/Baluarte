@@ -115,6 +115,8 @@ export interface Snap {
   /** Highest input seq from THIS client applied to the sim so far. */
   ack: number;
   wave: number;
+  /** Enemies left before the current wave clears; null during a boss fight. */
+  waveLeft: number | null;
   players: PlayerSnap[];
   enemies: number[];
   eshots: number[];

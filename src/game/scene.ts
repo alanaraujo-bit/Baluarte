@@ -547,6 +547,7 @@ export class GameScene implements Scene, World {
     hv.xp = this.player.xp;
     hv.xpNeed = this.player.xpNeed;
     hv.wave = this.waves.wave;
+    hv.remaining = this.waves.remaining?.(this.enemies.list.length) ?? null;
     hv.runTime = this.runTime;
     hv.coins = this.coinsRun;
     hv.combo = this.combo;

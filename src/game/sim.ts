@@ -194,6 +194,10 @@ export class CoopSim implements World {
     return this.waves.wave;
   }
 
+  get waveLeft(): number | null {
+    return this.waves.remaining(this.enemies.list.length);
+  }
+
   private lvFor(slot: number): (id: string) => number {
     return (id) => this.upgLevels[slot].get(id) ?? 0;
   }

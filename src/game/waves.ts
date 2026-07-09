@@ -25,12 +25,21 @@ export interface Director {
   bossInfo?(): SectorDef['boss'] | null;
   /** Graphics setting (entity density), client-only. Absent = TutorialDirector, unaffected. */
   densityMul?: number;
+  /**
+   * Enemies left before this wave clears (not-yet-spawned + still alive),
+   * given the caller's current alive count. Null during a boss encounter,
+   * where the boss HP bar tells that story instead. Absent = director has no
+   * such concept (tutorial, campaign).
+   */
+  remaining?(aliveCount: number): number | null;
 }
 
 /**
- * Drives the run's pacing: timed waves with a rising spawn budget, a boss
- * encounter every few waves that must be defeated to advance, and a sector
- * change every SECTOR_LEN waves that swaps the whole battlefield identity.
+ * Drives the run's pacing: each wave has a fixed enemy quota that trickles in
+ * with a rising spawn budget, and clears only once every one of them is dead
+ * (Zombies-style) — plus a boss encounter every few waves that must be
+ * defeated to advance, and a sector change every SECTOR_LEN waves that swaps
+ * the whole battlefield identity.
  */
 export interface WaveBudget {
   /** Multiplies maxAlive (co-op spawns more simultaneous enemies). */
@@ -50,21 +59,29 @@ export class WaveDirector implements Director {
    */
   densityMul = 1;
 
-  private waveT = 0;
   private spawnT = 1.1;
   private bossWarnT = 0;
   private bossPending = false;
   private trickleT = 0;
+  /** Total enemies for the current wave, and how many have been spawned so far. */
+  private quota: number;
+  private spawned = 0;
   private readonly maxAliveMul: number;
   private readonly batchMul: number;
 
   constructor(private readonly events: WaveEvents, budget: WaveBudget = {}) {
     this.maxAliveMul = budget.maxAliveMul ?? 1;
     this.batchMul = budget.batchMul ?? 1;
+    this.quota = BAL.wave.quota(this.wave);
   }
 
   bossInfo(): SectorDef['boss'] {
     return sectorForWave(this.wave).boss;
+  }
+
+  remaining(aliveCount: number): number | null {
+    if (this.bossPending || this.bossActive) return null;
+    return Math.max(0, this.quota - this.spawned) + aliveCount;
   }
 
   update(dt: number, world: World): void {
@@ -89,16 +106,21 @@ export class WaveDirector implements Director {
       return;
     }
 
-    this.waveT += dt;
-    if (this.waveT >= BAL.wave.duration) {
-      this.advance();
+    if (this.spawned >= this.quota) {
+      // Every enemy for this wave is out; wait for the board to actually
+      // clear (covers splitter minis and other derived spawns too) before
+      // moving on — Zombies-style, no next wave until the last one drops.
+      if (world.enemies.list.length === 0) this.advance();
       return;
     }
 
     this.spawnT -= dt;
     if (this.spawnT <= 0 && world.enemies.list.length < BAL.wave.maxAlive(this.wave) * this.maxAliveMul * this.densityMul) {
       this.spawnT = BAL.wave.spawnInterval(this.wave);
-      const batch = Math.max(1, Math.round((1 + Math.floor(this.wave / 6)) * this.batchMul));
+      const batch = Math.min(
+        Math.max(1, Math.round((1 + Math.floor(this.wave / 6)) * this.batchMul)),
+        this.quota - this.spawned,
+      );
       for (let i = 0; i < batch; i++) this.spawnOne(world);
     }
   }
@@ -106,8 +128,10 @@ export class WaveDirector implements Director {
   private advance(): void {
     const prev = this.wave;
     this.wave++;
-    this.waveT = 0;
-    this.spawnT = 0.6;
+    this.spawned = 0;
+    this.quota = BAL.wave.quota(this.wave);
+    // Short breather before the next wave's enemies start trickling in.
+    this.spawnT = 1.5;
     if (sectorIndexForWave(this.wave) !== sectorIndexForWave(prev)) {
       // The sector banner owns the moment; the wave banner would fight it.
       this.events.onSector(sectorForWave(this.wave), sectorNumberForWave(this.wave));
@@ -124,6 +148,7 @@ export class WaveDirector implements Director {
     const kind = forced ?? this.rollKind();
     const [x, y] = world.randomSpawnPos();
     world.enemies.spawn(kind, x, y, BAL.wave.hpMul(this.wave), BAL.wave.dmgMul(this.wave));
+    this.spawned++;
   }
 
   private rollKind(): EnemyKind {

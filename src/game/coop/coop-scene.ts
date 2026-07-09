@@ -511,6 +511,7 @@ export class CoopScene implements Scene {
         hv.coins = me.coins;
       }
       hv.wave = snap.wave;
+      hv.remaining = snap.waveLeft;
       hv.runTime = snap.tick / SIM_RATE;
       hv.combo = 0;
       hv.boss = snap.boss

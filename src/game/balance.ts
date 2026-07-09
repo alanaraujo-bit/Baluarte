@@ -22,8 +22,11 @@ export const BAL = {
     return Math.round(6 + (level - 1) * 4 + Math.pow(level - 1, 1.85));
   },
   wave: {
-    duration: 20,
     bossEvery: 5,
+    /** Total enemies to spawn this wave (cumulative, not simultaneous) — the wave clears once every one of them is dead. */
+    quota(wave: number): number {
+      return Math.round(Math.min(280, 22 + wave * 8));
+    },
     spawnInterval(wave: number): number {
       return Math.max(0.24, 0.85 - wave * 0.05);
     },

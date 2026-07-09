@@ -9,6 +9,8 @@ export interface HudView {
   xp: number;
   xpNeed: number;
   wave: number;
+  /** Enemies left before the wave clears; null/absent hides the counter (boss fight, campaign, tutorial). */
+  remaining?: number | null;
   runTime: number;
   coins: number;
   combo: number;
@@ -107,6 +109,12 @@ export class Hud {
       ctx.textAlign = 'center';
       ctx.fillStyle = '#eaf6ff';
       ctx.fillText(waveText, centerX, hudY + cellHeight / 2);
+
+      if (v.remaining != null) {
+        ctx.font = `700 9px ${FONT}`;
+        ctx.fillStyle = 'rgba(234,246,255,0.68)';
+        ctx.fillText(`${v.remaining} restantes`, centerX, hudY + cellHeight + 9);
+      }
     }
 
     // Right side: Timer + Coins stacked, clearing pause button.

@@ -460,13 +460,14 @@ const systemEntries: CodexEntry[] = [
   {
     id: 'waves',
     name: 'Ondas',
-    tagline: `Cada onda dura ${BAL.wave.duration}s e o inimigo fica mais forte a cada uma.`,
-    lore: 'O ataque vem em ondas cronometradas. A cada onda, mais inimigos aparecem, mais rápido, com mais vida e mais dano — e novos tipos entram em cena conforme a run avança pelos setores.',
-    tactic: `A cada ${BAL.wave.bossEvery} ondas, a onda regular é substituída por um confronto contra o chefe do setor atual, que precisa ser destruído para a progressão continuar.`,
+    tagline: 'Cada onda tem uma leva fixa de inimigos — só acaba quando o último cai.',
+    lore: 'Os inimigos daquela leva entram aos poucos, num ritmo que só acelera. A onda só termina quando todos eles forem abatidos; aí vem um respiro curto antes da próxima leva, mais forte, começar a aparecer.',
+    tactic: `A cada ${BAL.wave.bossEvery} ondas, a leva regular é substituída por um confronto contra o chefe do setor atual, que precisa ser destruído para a progressão continuar.`,
     accent: '#35f0ff',
     icon: paintIcon('rate', '#35f0ff', 48),
     stats: [
-      { label: 'Duração de cada onda', value: `${BAL.wave.duration}s` },
+      { label: 'Inimigos na onda 1', value: `${BAL.wave.quota(1)}` },
+      { label: 'Como avança', value: 'Elimine todos os inimigos da leva' },
       { label: 'Onda com chefe', value: `A cada ${BAL.wave.bossEvery} ondas` },
     ],
   },
