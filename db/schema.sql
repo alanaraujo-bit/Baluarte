@@ -96,3 +96,9 @@ create index if not exists purchases_player_idx on purchases (player_id, created
 alter table saves add column if not exists campaign_stars jsonb not null default '{}';
 alter table saves add column if not exists skin text not null default 'aegis';
 alter table saves add column if not exists owned_skins jsonb not null default '[]';
+
+-- Gemas totais, chefes derrotados e conquistas — sincronizado como o resto
+-- do save na nuvem.
+alter table saves add column if not exists total_gems bigint not null default 0;
+alter table saves add column if not exists bosses_killed jsonb not null default '[]';
+alter table saves add column if not exists achievements jsonb not null default '{}';
