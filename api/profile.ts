@@ -35,7 +35,8 @@ async function getProfile(req: VercelRequest, res: VercelResponse): Promise<void
       `select p.handle, p.display_name, p.created_at,
               s.lb_wave, s.lb_coins, s.lb_time, s.lb_score,
               s.lb_wave_at, s.lb_coins_at, s.lb_time_at,
-              s.runs, s.total_kills, s.total_time
+              s.runs, s.total_kills, s.total_time,
+              (select max(created_at) from runs where player_id = p.id) as last_run_at
        from players p join saves s on s.player_id = p.id
        where p.handle = $1`,
       [handle],
@@ -69,6 +70,7 @@ async function getProfile(req: VercelRequest, res: VercelResponse): Promise<void
         runs: row.runs,
         totalKills: Number(row.total_kills),
         totalTime: row.total_time,
+        lastRunAt: row.last_run_at ? new Date(row.last_run_at).toISOString() : null,
       },
       ranks: {
         wave: await rankOf('lb_wave'),

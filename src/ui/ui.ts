@@ -1454,6 +1454,9 @@ export class UI {
     head.appendChild(el('div', 'profile-name', profile.name));
     head.appendChild(el('div', 'profile-handle', `@${profile.handle}`));
     head.appendChild(el('div', 'profile-since', `${S.memberSince} ${fmtMonthYear(profile.createdAt)}`));
+    if (profile.stats.lastRunAt) {
+      head.appendChild(el('div', 'profile-last-online', `${S.lastOnline} ${fmtRelTime(profile.stats.lastRunAt)}`));
+    }
     body.appendChild(head);
 
     const ranks = el('div', 'row chips profile-ranks');
@@ -1609,4 +1612,20 @@ function fmtLongTime(seconds: number): string {
   const m = Math.floor((s % 3600) / 60);
   if (h > 0) return `${h}h ${m}min`;
   return fmtTime(s);
+}
+
+/** Formata um timestamp ISO como "há X minutos" / "há X horas" / "há X dias". */
+function fmtRelTime(iso: string): string {
+  const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (diff < 60) return 'agora';
+  if (diff < 3600) {
+    const m = Math.floor(diff / 60);
+    return `há ${m} ${m === 1 ? 'minuto' : 'minutos'}`;
+  }
+  if (diff < 86400) {
+    const h = Math.floor(diff / 3600);
+    return `há ${h} ${h === 1 ? 'hora' : 'horas'}`;
+  }
+  const d = Math.floor(diff / 86400);
+  return `há ${d} ${d === 1 ? 'dia' : 'dias'}`;
 }

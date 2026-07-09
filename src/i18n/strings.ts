@@ -164,6 +164,7 @@ export const S = {
   ranksHeading: 'Posições no ranking global',
   editName: 'EDITAR NOME',
   profileNotFound: 'Piloto não encontrado.',
+  lastOnline: 'última vez online',
   recordWave: 'Onda',
   recordScore: 'Pontuação',
   recordTime: 'Tempo',

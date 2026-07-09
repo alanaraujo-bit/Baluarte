@@ -97,6 +97,7 @@ export interface ProfileResponse {
     runs: number;
     totalKills: number;
     totalTime: number;
+    lastRunAt: string | null;
   };
   ranks: {
     wave: number | null;
