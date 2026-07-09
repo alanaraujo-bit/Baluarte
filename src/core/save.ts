@@ -125,6 +125,12 @@ export interface SaveData {
   skin: string;
   /** Owned skin IDs (purchased with coins). */
   ownedSkins: string[];
+  /** Total gems collected across all runs (conta cada coleta como 1). */
+  totalGems: number;
+  /** Boss kinds already killed at least once (e.g. 'boss', 'queen', 'archivist'). */
+  bossesKilled: string[];
+  /** Unlocked achievement IDs e quando foram destravados (timestamp ms). */
+  achievements: Record<string, number>;
 }
 
 const GUEST_KEY = 'vanguarda.save.v1';
@@ -154,6 +160,9 @@ function defaults(): SaveData {
     campaignStars: {},
     skin: 'aegis',
     ownedSkins: [],
+    totalGems: 0,
+    bossesKilled: [],
+    achievements: {},
   };
 }
 
@@ -181,6 +190,11 @@ function parse(raw: string): SaveData {
     campaignStars: (parsed.campaignStars ?? {}),
     skin: typeof parsed.skin === 'string' ? parsed.skin : 'aegis',
     ownedSkins: Array.isArray(parsed.ownedSkins) ? parsed.ownedSkins : [],
+    totalGems: typeof parsed.totalGems === 'number' ? parsed.totalGems : 0,
+    bossesKilled: Array.isArray(parsed.bossesKilled) ? parsed.bossesKilled.filter((s): s is string => typeof s === 'string') : [],
+    achievements: (parsed.achievements && typeof parsed.achievements === 'object' && !Array.isArray(parsed.achievements))
+      ? { ...(parsed.achievements as Record<string, number>) }
+      : {},
     settings: { ...base.settings, ...(parsed.settings ?? {}), graphics },
   };
   // v1 → v2: veterans never see the forced onboarding flow.

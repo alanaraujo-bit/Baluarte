@@ -25,6 +25,9 @@ export interface CloudSave {
   campaignStars: Record<string, number>;
   skin: string;
   ownedSkins: string[];
+  totalGems: number;
+  bossesKilled: string[];
+  achievements: Record<string, number>;
 }
 
 export interface PlayerInfo {
@@ -151,6 +154,8 @@ export const SAVE_LIMITS = {
   campaignLevel: 11,
   /** Máximo de skins que qualquer um pode ter (5 pagas + 1 padrão). */
   ownedSkins: 6,
+  /** Máx de achievements. */
+  achievements: 20,
 } as const;
 
 function num(v: unknown, max: number): number {
@@ -175,6 +180,15 @@ const GRAPHICS_PRESET_IDS: readonly GraphicsPreset[] = ['low', 'medium', 'high',
 const BACKGROUND_QUALITY_IDS: readonly BackgroundQuality[] = ['off', 'low', 'full'];
 const FPS_CAPS: readonly FpsCap[] = [0, 30, 60];
 const CONTROL_SCHEME_IDS: readonly ControlScheme[] = ['free', 'bottomHalf'];
+
+function limitRecord(rec: Record<string, number>, max: number): Record<string, number> {
+  const keys = Object.keys(rec);
+  if (keys.length <= max) return { ...rec };
+  // Se vier com mais entries que o esperado, corta as primeiras N.
+  const out: Record<string, number> = {};
+  for (let i = 0; i < max && i < keys.length; i++) out[keys[i]] = rec[keys[i]];
+  return out;
+}
 
 /** Untrusted payload from the network — never trust it wholesale, clamp field by field. */
 function clampGraphics(g: unknown): GraphicsSettings {
@@ -245,6 +259,13 @@ export function clampCloudSave(raw: Partial<CloudSave> | null | undefined): Clou
     ownedSkins: Array.isArray(r.ownedSkins)
       ? r.ownedSkins.filter((s): s is string => typeof s === 'string').slice(0, SAVE_LIMITS.ownedSkins)
       : [],
+    totalGems: int(r.totalGems, 9_999_999),
+    bossesKilled: Array.isArray(r.bossesKilled)
+      ? r.bossesKilled.filter((s): s is string => typeof s === 'string').slice(0, 5)
+      : [],
+    achievements: (r.achievements && typeof r.achievements === 'object' && !Array.isArray(r.achievements))
+      ? limitRecord(r.achievements as Record<string, number>, SAVE_LIMITS.achievements)
+      : {},
   };
 }
 
@@ -276,6 +297,9 @@ export function mergeCloudSaves(a: CloudSave, b: CloudSave, coinsFrom: 'max' | '
     campaignStars: { ...b.campaignStars, ...a.campaignStars },
     skin: a.skin !== 'aegis' ? a.skin : b.skin,
     ownedSkins: [...new Set([...b.ownedSkins, ...a.ownedSkins])],
+    totalGems: Math.max(a.totalGems, b.totalGems),
+    bossesKilled: [...new Set([...b.bossesKilled, ...a.bossesKilled])],
+    achievements: { ...b.achievements, ...a.achievements },
   };
 }
 
@@ -298,6 +322,9 @@ export function cloudFromSave(d: SaveData): CloudSave {
     campaignStars: { ...d.campaignStars },
     skin: d.skin,
     ownedSkins: [...d.ownedSkins],
+    totalGems: d.totalGems,
+    bossesKilled: [...d.bossesKilled],
+    achievements: { ...d.achievements },
   });
 }
 
@@ -322,4 +349,7 @@ export function applyCloudToSave(d: SaveData, c: CloudSave): void {
   d.campaignStars = { ...c.campaignStars, ...d.campaignStars };
   d.skin = c.skin !== 'aegis' ? c.skin : d.skin;
   d.ownedSkins = [...new Set([...c.ownedSkins, ...d.ownedSkins])];
+  d.totalGems = Math.max(d.totalGems, c.totalGems);
+  d.bossesKilled = [...new Set([...c.bossesKilled, ...d.bossesKilled])];
+  d.achievements = { ...c.achievements, ...d.achievements };
 }

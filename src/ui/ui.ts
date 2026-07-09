@@ -2,6 +2,7 @@ import { applyPreset, type BackgroundQuality, type ControlScheme, type FpsCap, t
 import { fmtTime } from '../core/utils';
 import type { AudioEngine } from '../audio/audio';
 import { S } from '../i18n/strings';
+import { ACHIEVEMENT_DEFS } from '../game/achievements';
 import { CAMPAIGN } from '../game/campaign';
 import { CODEX, CODEX_INTRO, type CodexCategoryId, type CodexEntry } from '../game/codex';
 import { META_DEFS, metaCost, metaLevel } from '../game/meta';
@@ -1873,6 +1874,39 @@ export class UI {
     addStat(fmtLongTime(profile.stats.totalTime), 'Tempo total');
     body.appendChild(grid);
 
+    // Conquistas
+    const achSection = el('div', 'profile-achievements');
+    achSection.appendChild(el('div', 'profile-section-title', S.achievements));
+
+    const unlocked = own ? this.save.data.achievements : {};
+    const achGrid = el('div', 'ach-grid');
+
+    for (const def of ACHIEVEMENT_DEFS) {
+      const card = el('div', `ach-card${unlocked[def.id] ? ' unlocked' : ''}`);
+      card.style.setProperty('--ach-color', def.color);
+
+      const icon = el('div', 'ach-icon-wrap');
+      icon.appendChild(paintIcon(def.icon, unlocked[def.id] ? def.color : '#555', 30));
+      card.appendChild(icon);
+
+      const info = el('div', 'ach-info');
+      info.appendChild(el('div', 'ach-name', def.name));
+      info.appendChild(el('div', 'ach-desc', def.desc));
+
+      const meta = el('div', 'ach-meta');
+      const catLabel = def.category === 'easy' ? S.achievementEasy
+        : def.category === 'medium' ? S.achievementMedium
+        : S.achievementHard;
+      meta.appendChild(el('span', `ach-cat ${def.category}`, catLabel));
+      meta.appendChild(el('span', 'ach-reward', `+${def.reward}`));
+      info.appendChild(meta);
+      card.appendChild(info);
+
+      achGrid.appendChild(card);
+    }
+    achSection.appendChild(achGrid);
+    body.appendChild(achSection);
+
     if (own && session.authed) {
       const col = el('div', 'col profile-actions');
       col.appendChild(this.btn(S.editName, 'ghost', () => this.editOwnName()));
@@ -1883,6 +1917,29 @@ export class UI {
       }));
       body.appendChild(col);
     }
+  }
+
+  // ————— conquistas —————
+
+  /** Notificação toast quando uma conquista é destravada. */
+  achievementUnlocked(name: string, reward: number, color: string): void {
+    const el = document.createElement('div');
+    el.className = 'achievement-popup';
+    el.style.setProperty('--ach-color', color);
+    el.innerHTML = `
+      <div class="ach-popup-inner">
+        <div class="ach-popup-title">${S.achievementUnlocked}</div>
+        <div class="ach-popup-name">${name}</div>
+        <div class="ach-popup-reward"><span class="coin-dot"></span>+${reward}</div>
+      </div>`;
+    this.root.appendChild(el);
+    // Animar entrada
+    requestAnimationFrame(() => el.classList.add('on'));
+    setTimeout(() => {
+      el.classList.remove('on');
+      setTimeout(() => el.remove(), 400);
+    }, 3800);
+    this.audio.play('buy');
   }
 
   private editOwnName(): void {

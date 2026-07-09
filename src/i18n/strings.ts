@@ -248,4 +248,14 @@ export const S = {
   skinPurchaseNotice: 'Nova skin adquirida!',
   skinNotEnoughCoins: 'Moedas insuficientes.',
   skinTab: 'FUSELAGEM',
+
+  // ————— conquistas —————
+  achievements: 'CONQUISTAS',
+  achievementsSub: 'Desafios e marcos da sua jornada como piloto',
+  achievementUnlocked: 'CONQUISTA DESTRAVADA!',
+  achievementProgress: 'Progresso',
+  achievementReward: 'Recompensa',
+  achievementEasy: 'FÁCIL',
+  achievementMedium: 'MÉDIO',
+  achievementHard: 'DIFÍCIL',
 } as const;

@@ -27,6 +27,7 @@ import type { World } from './world';
 import { skinById, SKINS } from './skins';
 import type { LevelStats, RunStats, UI } from '../ui/ui';
 import { acquireWakeLock, releaseWakeLock } from '../core/wake-lock';
+import { ACHIEVEMENT_DEFS, checkAchievements } from './achievements';
 
 export interface GameDeps {
   game: Game;
@@ -66,6 +67,7 @@ export class GameScene implements Scene, World {
   private kills = 0;
   private killScore = 0;
   private coinsRun = 0;
+  private gemsRun = 0;
   private combo = 0;
   private comboT = 0;
   private gemStreak = 0;
@@ -344,6 +346,12 @@ export class GameScene implements Scene, World {
     this.audio.play('bossDie');
     this.hitStop(0.4, 0.05);
     this.shake(42);
+    // Tracking para conquistas.
+    const bossKind = _e.kind;
+    if (!this.deps.save.data.bossesKilled.includes(bossKind)) {
+      this.deps.save.data.bossesKilled.push(bossKind);
+      this.deps.save.persist();
+    }
     const boss = this.waves.bossInfo?.() ?? sectorForWave(this.waves.wave).boss;
     this.deps.ui.banner(boss.defeatTitle, boss.defeatSub);
     // Se a próxima onda for um novo setor, agenda a transição com 2s de respiro.
@@ -360,6 +368,7 @@ export class GameScene implements Scene, World {
   }
 
   onGemCollected(value: number, collector: Player): void {
+    this.gemsRun++;
     this.gemStreak++;
     this.gemStreakT = 0.9;
     this.tutorialDir?.noteGem();
@@ -501,6 +510,19 @@ export class GameScene implements Scene, World {
     ctx.globalAlpha = 1;
   }
 
+  /** Verifica conquistas e mostra notificações para as recém-destravadas. */
+  private checkNewAchievements(): void {
+    const unlocked = Object.keys(this.deps.save.data.achievements);
+    const newly = checkAchievements(this.deps.save.data, unlocked);
+    for (const id of newly) {
+      const def = ACHIEVEMENT_DEFS.find((a) => a.id === id);
+      if (!def) continue;
+      this.deps.save.data.achievements[id] = Date.now();
+      this.deps.save.persist();
+      this.deps.ui.achievementUnlocked(def.name, def.reward, def.color);
+    }
+  }
+
   private finalize(): void {
     this.state = 'over';
     this.deps.game.timeScale = 1;
@@ -527,10 +549,13 @@ export class GameScene implements Scene, World {
     save.data.bestScore = Math.max(save.data.bestScore, score);
     save.data.bestTime = Math.max(save.data.bestTime, this.runTime);
     save.data.bestCoins = Math.max(save.data.bestCoins, coins);
+    save.data.totalGems += this.gemsRun;
     save.data.runs++;
     save.data.totalKills += this.kills;
     save.data.totalTime += this.runTime;
     save.persist();
+
+    this.checkNewAchievements();
 
     this.deps.onRunEnd?.({
       runId: randomId(),
@@ -564,6 +589,7 @@ export class GameScene implements Scene, World {
     let stars = 0;
 
     if (cleared) {
+      save.data.totalGems += this.gemsRun;
       save.data.coins += this.coinsRun;
       save.data.campaignLevel = Math.max(save.data.campaignLevel, index + 2);
 
