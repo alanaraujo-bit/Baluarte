@@ -58,7 +58,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       return;
     }
 
-    const status = payment.status === 'approved'
+    // Confirmed by a real paid order: the Orders API's nested payment status
+    // lands on "processed" (status_detail "accredited") for a completed Pix,
+    // NOT "approved" like the classic Payments API. Accepting both in case
+    // that varies by payment method.
+    const status = payment.status === 'approved' || payment.status === 'processed'
       ? 'approved'
       : payment.status === 'cancelled' || payment.status === 'rejected'
         ? 'rejected'
