@@ -26,6 +26,7 @@ import { Nova, Orbitals } from './weapons';
 import type { World } from './world';
 import { skinById, SKINS } from './skins';
 import type { LevelStats, RunStats, UI } from '../ui/ui';
+import { acquireWakeLock, releaseWakeLock } from '../core/wake-lock';
 
 export interface GameDeps {
   game: Game;
@@ -155,6 +156,7 @@ export class GameScene implements Scene, World {
   private readonly lv = (id: string): number => this.upgLevels.get(id) ?? 0;
 
   enter(): void {
+    acquireWakeLock();
     this.deps.music.setMode('game');
     this.deps.music.intensity = 0;
     if (this.deps.campaign) {
@@ -183,6 +185,7 @@ export class GameScene implements Scene, World {
   }
 
   exit(): void {
+    releaseWakeLock();
     this.deps.game.timeScale = 1;
     this.deps.ui.hideTutorial();
     this.deps.ui.hideTutorialBubble();

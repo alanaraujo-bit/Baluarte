@@ -2,6 +2,7 @@ import type { SfxName, AudioEngine } from '../../audio/audio';
 import type { Music } from '../../audio/music';
 import type { Game, Scene } from '../../core/game';
 import type { SaveSystem } from '../../core/save';
+import { acquireWakeLock, releaseWakeLock } from '../../core/wake-lock';
 import { clamp, damp } from '../../core/utils';
 import { Background } from '../../fx/background';
 import { Floaters } from '../../fx/floaters';
@@ -106,6 +107,7 @@ export class CoopScene implements Scene {
   }
 
   enter(): void {
+    acquireWakeLock();
     this.deps.music.setMode('game');
     this.deps.music.intensity = 0;
     this.deps.music.setTheme(SECTORS[0].music);
@@ -121,6 +123,7 @@ export class CoopScene implements Scene {
   }
 
   exit(): void {
+    releaseWakeLock();
     if (this.bgSender) clearInterval(this.bgSender);
     this.bgSender = null;
     this.particles.clear();
