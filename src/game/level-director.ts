@@ -60,6 +60,10 @@ export class LevelDirector implements Director {
     return kind ? this.bossDefFor(kind) : null;
   }
 
+  currentSector(): SectorDef {
+    return this.level.sector;
+  }
+
   /** Forwarded by GameScene.onEnemyKilled, mirrors TutorialDirector.noteKill. */
   noteKill(): void {
     this.kills++;

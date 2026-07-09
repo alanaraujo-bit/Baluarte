@@ -115,6 +115,7 @@ export interface Snap {
   /** Highest input seq from THIS client applied to the sim so far. */
   ack: number;
   wave: number;
+  sectorId: string;
   /** Enemies left before the current wave clears; null during a boss fight. */
   waveLeft: number | null;
   players: PlayerSnap[];
@@ -133,7 +134,7 @@ export interface Snap {
  */
 export type SimEvent =
   | { e: 'wave'; n: number }
-  | { e: 'sector'; n: number }
+  | { e: 'sector'; id: string; n: number }
   | { e: 'bossWarn' }
   | { e: 'bossDown' }
   /** Enemy death visual: kind index + where. */

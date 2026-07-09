@@ -135,8 +135,11 @@ export class GameScene implements Scene, World {
           this.deps.music.intensity = 1;
         },
         onSector: (sector, number) => {
-          // Se um boss acabou de morrer e a transição está agendada, não executa agora.
-          if (this.sectorTransitionTimer > 0) return;
+          // Se um boss acabou de morrer e a transição está agendada, apenas armazena e não executa agora.
+          if (this.sectorTransitionTimer > 0) {
+            this.pendingSector = { sector, number };
+            return;
+          }
           this.commitSector(sector, number);
         },
       });
@@ -352,16 +355,19 @@ export class GameScene implements Scene, World {
       this.deps.save.data.bossesKilled.push(bossKind);
       this.deps.save.persist();
     }
-    const boss = this.waves.bossInfo?.() ?? sectorForWave(this.waves.wave).boss;
+    const boss = this.waves.bossInfo?.() ?? this.waves.currentSector!().boss;
     this.deps.ui.banner(boss.defeatTitle, boss.defeatSub);
-    // Se a próxima onda for um novo setor, agenda a transição com 2s de respiro.
+    // Se a próxima onda for um novo setor, agenda a transição com 3s de respiro.
     const nextWave = this.waves.wave + 1;
     if (!this.deps.campaign && sectorIndexForWave(nextWave) !== sectorIndexForWave(this.waves.wave)) {
-      this.sectorTransitionTimer = 2.0;
-      this.pendingSector = { sector: sectorForWave(nextWave), number: sectorNumberForWave(nextWave) };
+      this.sectorTransitionTimer = 3.0;
+      // Mostra uma notificação contextual em vez de apenas esperar
+      setTimeout(() => {
+        if (this.state === 'playing') this.deps.ui.banner("INICIANDO SALTO MAGNÉTICO...", "CRIANDO ROTA...");
+      }, 1500);
     } else {
       // Boss normal (mesmo setor) — volta à música do setor.
-      const music = this.deps.campaign?.level.sector.music ?? sectorForWave(this.waves.wave).music;
+      const music = this.deps.campaign?.level.sector.music ?? this.waves.currentSector!().music;
       this.deps.music.setTheme(music);
       this.deps.music.intensity = Math.min(1, this.waves.wave / 12);
     }
@@ -433,9 +439,9 @@ export class GameScene implements Scene, World {
     this.bg.setTheme(sector.background);
     this.deps.music.setTheme(sector.music);
     this.deps.music.intensity = 0.35;
-    this.sectorFlash = 1;
+    this.sectorFlash = 1.5; // Um flash mais longo para dar mais impacto ao novo setor
     this.sectorFlashColor = sector.accent;
-    this.shake(24);
+    this.shake(30);
   }
 
   /**
@@ -711,7 +717,7 @@ export class GameScene implements Scene, World {
     hv.skinAccent = this.player.skinDef.accent;
     const boss = this.enemies.boss;
     hv.boss = boss
-      ? { hp: boss.hp, maxHp: boss.maxHp, name: (this.waves.bossInfo?.() ?? sectorForWave(this.waves.wave).boss).name }
+      ? { hp: boss.hp, maxHp: boss.maxHp, name: (this.waves.bossInfo?.() ?? this.waves.currentSector!().boss).name }
       : null;
     this.hud.render(ctx, hv, vp, time, gfx.glow);
     this.renderEnemyArrow(ctx, w, h, time, gfx.glow);

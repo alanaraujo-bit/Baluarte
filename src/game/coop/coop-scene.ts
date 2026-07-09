@@ -229,28 +229,36 @@ export class CoopScene implements Scene {
           this.deps.music.intensity = Math.min(1, ev.n / 12);
           break;
         case 'sector': {
-          const sector = SECTORS[(ev.n - 1) % SECTORS.length];
-          // Se um boss acabou de morrer e a transição está agendada, não executa agora.
-          if (this.sectorTransitionTimer > 0) break;
+          const sector = SECTORS.find(s => s.id === (ev as any).id) ?? SECTORS[0]; // ev as any because the compiler doesn't know about id yet on this specific union without checking
+          // Se um boss acabou de morrer e a transição está agendada, apenas armazena e não executa agora.
+          if (this.sectorTransitionTimer > 0) {
+            this.pendingSector = { sector, number: ev.n };
+            break;
+          }
           this.commitSector(sector, ev.n);
           break;
         }
         case 'bossWarn': {
-          const sector = sectorForWave(this.currSnap?.wave ?? 1);
+          const sectorId = this.currSnap?.sectorId;
+          const sector = SECTORS.find(s => s.id === sectorId) ?? SECTORS[0];
           this.deps.ui.banner(sector.boss.name.toUpperCase(), sector.boss.warnSub, true);
           this.deps.music.setTheme(sector.music.bossMusic ?? sector.music);
           this.deps.music.intensity = 1;
           break;
         }
         case 'bossDown': {
-          const sector = sectorForWave(this.currSnap?.wave ?? 1);
+          const sectorId = this.currSnap?.sectorId;
+          const sector = SECTORS.find(s => s.id === sectorId) ?? SECTORS[0];
           this.deps.ui.banner(sector.boss.defeatTitle, sector.boss.defeatSub);
           this.shake(42);
-          // Se a próxima onda for um novo setor, agenda a transição com 2s de respiro.
+          // Se a próxima onda for um novo setor, agenda a transição com 3s de respiro.
           const nextWave = (this.currSnap?.wave ?? 1) + 1;
           if (sectorIndexForWave(nextWave) !== sectorIndexForWave(this.currSnap?.wave ?? 1)) {
-            this.sectorTransitionTimer = 2.0;
-            this.pendingSector = { sector: sectorForWave(nextWave), number: sectorNumberForWave(nextWave) };
+            this.sectorTransitionTimer = 3.0;
+            // Mostra uma notificação contextual em vez de apenas esperar
+            setTimeout(() => {
+              if (!this.ended) this.deps.ui.banner("INICIANDO SALTO MAGNÉTICO...", "CRIANDO ROTA...");
+            }, 1500);
           } else {
             this.deps.music.setTheme(sector.music);
             this.deps.music.intensity = Math.min(1, (this.currSnap?.wave ?? 1) / 12);
@@ -538,8 +546,9 @@ export class CoopScene implements Scene {
       hv.remaining = snap.waveLeft;
       hv.runTime = snap.tick / SIM_RATE;
       hv.combo = 0;
+      const sector = SECTORS.find(s => s.id === snap.sectorId) ?? SECTORS[0];
       hv.boss = snap.boss
-        ? { hp: snap.boss[0], maxHp: snap.boss[1], name: sectorForWave(snap.wave).boss.name }
+        ? { hp: snap.boss[0], maxHp: snap.boss[1], name: sector.boss.name }
         : null;
       hv.partner = partner
         ? {
@@ -603,9 +612,9 @@ export class CoopScene implements Scene {
     this.bg.setTheme(sector.background);
     this.deps.music.setTheme(sector.music);
     this.deps.music.intensity = 0.35;
-    this.sectorFlash = 1;
+    this.sectorFlash = 1.5;
     this.sectorFlashColor = sector.accent;
-    this.shake(24);
+    this.shake(30);
   }
 
   /**

@@ -51,6 +51,7 @@ export function encodeSnap(sim: CoopSim): Omit<Snap, 'ack'> {
   return {
     tick: sim.tickNo,
     wave: sim.wave,
+    sectorId: sim.currentSectorId,
     waveLeft: sim.waveLeft,
     players,
     enemies,

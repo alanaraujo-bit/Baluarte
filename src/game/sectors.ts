@@ -309,7 +309,58 @@ export const FUNDICA: SectorDef = {
   },
 };
 
-export const SECTORS: readonly SectorDef[] = [RUINA, COLMEIA, ARQUIVO, GELIDA, TOXICA, FUNDICA];
+export const BOSQUE: SectorDef = {
+  id: 'bosque',
+  name: 'BOSQUE FÓSSIL',
+  subtitle: 'A memória petrificada da Ruína',
+  accent: '#d4a843',
+  composition: [
+    { kind: 'pollen', weight: 9, from: 1, decay: 0.18, floor: 4 },
+    { kind: 'root', weight: 5, from: 1 },
+    { kind: 'amber', weight: 4.5, from: 2 },
+    { kind: 'canopy', weight: 3.5, from: 3 },
+    { kind: 'petra', weight: 3, from: 5 },
+  ],
+  boss: {
+    kind: 'ancient',
+    name: 'O Primeiro',
+    warnSub: 'O MAIS ANTIGO ACORDOU',
+    defeatTitle: 'PRIMEIRO DESTRUÍDO',
+    defeatSub: 'A memória vira pó... por enquanto',
+  },
+  background: {
+    gradient: ['#1a1410', '#120e0b', '#0d0a08'],
+    nebulas: ['rgba(212, 168, 67, 0.4)', 'rgba(160, 128, 96, 0.35)', 'rgba(196, 160, 64, 0.3)'],
+    star: '#e8d4a0',
+    grid: 'rgba(180, 150, 100, 0.08)',
+    gridStyle: 'hex',
+  },
+  // Bb Dorian — warm, ancient, haunting. Wooden flutes and deep earth resonance.
+  music: {
+    bpm: 90,
+    bass: [46.25, 51.91, 49, 46.25],
+    chords: [
+      [233.08, 277.18, 349.23],
+      [246.94, 311.13, 370],
+      [220, 277.18, 329.63],
+      [233.08, 293.66, 349.23],
+    ],
+    lead: 'triangle',
+    bossMusic: {
+      bpm: 108,
+      bass: [46.25, 46.25, 55, 49],
+      chords: [
+        [233.08, 277.18, 349.23, 466.16],
+        [246.94, 311.13, 370, 493.88],
+        [233.08, 293.66, 349.23, 440],
+        [277.18, 329.63, 415.3, 523.25],
+      ],
+      lead: 'square',
+    },
+  },
+};
+
+export const SECTORS: readonly SectorDef[] = [RUINA, COLMEIA, ARQUIVO, GELIDA, TOXICA, FUNDICA, BOSQUE];
 
 /** 0-based campaign position — keeps counting up when sectors cycle. */
 export function sectorIndexForWave(wave: number): number {
@@ -323,6 +374,16 @@ export function sectorForWave(wave: number): SectorDef {
 /** Display number for banners: wave 21 opens "SETOR 3" even though it cycles. */
 export function sectorNumberForWave(wave: number): number {
   return sectorIndexForWave(wave) + 1;
+}
+
+/** 
+ * Seleciona um setor aleatório (para modo Normal/Co-op). 
+ * Qualquer novo setor adicionado em SECTORS entrará automaticamente no pool.
+ */
+export function rollRandomSector(excludeId?: string): SectorDef {
+  let available = SECTORS.filter((s) => s.id !== excludeId);
+  if (available.length === 0) available = [...SECTORS];
+  return available[Math.floor(Math.random() * available.length)];
 }
 
 /** First absolute wave a kind shows up in (codex "surgimento" line). */

@@ -3,6 +3,7 @@ import { TAU } from '../core/utils';
 import { S } from '../i18n/strings';
 import type { UI } from '../ui/ui';
 import type { Director } from './waves';
+import { SECTORS, type SectorDef } from './sectors';
 import type { World } from './world';
 
 export interface TutorialHooks {
@@ -39,6 +40,10 @@ interface TutStep {
  */
 export class TutorialDirector implements Director {
   wave = 1;
+
+  currentSector(): SectorDef {
+    return SECTORS[0];
+  }
 
   private stepIndex = -1;
   private stepT = 0;

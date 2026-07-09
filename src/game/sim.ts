@@ -176,9 +176,9 @@ export class CoopSim implements World {
         this.push({ e: 'bossWarn' });
         this.pushSfx('warn');
       },
-      onSector: (_sector, number) => {
+      onSector: (sector, number) => {
         this.reviveDead();
-        this.push({ e: 'sector', n: number });
+        this.push({ e: 'sector', id: sector.id, n: number });
         this.pushSfx('sector');
       },
     }, { maxAliveMul: this.tuning.maxAliveMul, batchMul: this.tuning.batchMul });
@@ -192,6 +192,10 @@ export class CoopSim implements World {
 
   get wave(): number {
     return this.waves.wave;
+  }
+
+  get currentSectorId(): string {
+    return this.waves.currentSector!().id;
   }
 
   get waveLeft(): number | null {

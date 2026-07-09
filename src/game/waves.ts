@@ -1,6 +1,6 @@
 import { BAL } from './balance';
 import type { EnemyKind } from './enemies';
-import { SECTOR_LEN, sectorForWave, sectorIndexForWave, sectorNumberForWave, type PoolEntry, type SectorDef } from './sectors';
+import { SECTOR_LEN, sectorForWave, sectorIndexForWave, sectorNumberForWave, rollRandomSector, type PoolEntry, type SectorDef } from './sectors';
 import type { World } from './world';
 
 export interface WaveEvents {
@@ -21,8 +21,10 @@ export interface Director {
   /** True once this director's win condition is met (campaign only). */
   cleared?: boolean;
   /** The boss currently in play, for GameScene's HUD/defeat banner. Defaults
-   * to WaveDirector's sector lookup when absent. */
+   * to Director's currentSector boss when absent. */
   bossInfo?(): SectorDef['boss'] | null;
+  /** Current sector for this director (used for rendering environment) */
+  currentSector?(): SectorDef;
   /** Graphics setting (entity density), client-only. Absent = TutorialDirector, unaffected. */
   densityMul?: number;
   /**
@@ -68,15 +70,23 @@ export class WaveDirector implements Director {
   private spawned = 0;
   private readonly maxAliveMul: number;
   private readonly batchMul: number;
+  
+  private _currentSector: SectorDef;
+  private _sectorCount = 1;
 
   constructor(private readonly events: WaveEvents, budget: WaveBudget = {}) {
     this.maxAliveMul = budget.maxAliveMul ?? 1;
     this.batchMul = budget.batchMul ?? 1;
     this.quota = BAL.wave.quota(this.wave);
+    this._currentSector = rollRandomSector();
+  }
+
+  currentSector(): SectorDef {
+    return this._currentSector;
   }
 
   bossInfo(): SectorDef['boss'] {
-    return sectorForWave(this.wave).boss;
+    return this._currentSector.boss;
   }
 
   remaining(aliveCount: number): number | null {
@@ -100,7 +110,7 @@ export class WaveDirector implements Director {
         this.trickleT -= dt;
         if (this.trickleT <= 0 && world.enemies.list.length < 12) {
           this.trickleT = 2.6;
-          this.spawnOne(world, sectorForWave(this.wave).composition[0].kind);
+          this.spawnOne(world, this._currentSector.composition[0].kind);
         }
       }
       return;
@@ -133,12 +143,14 @@ export class WaveDirector implements Director {
     // Short breather before the next wave's enemies start trickling in.
     this.spawnT = 1.5;
     if (sectorIndexForWave(this.wave) !== sectorIndexForWave(prev)) {
+      this._currentSector = rollRandomSector(this._currentSector.id);
+      this._sectorCount++;
       // The sector banner owns the moment; the wave banner would fight it.
-      this.events.onSector(sectorForWave(this.wave), sectorNumberForWave(this.wave));
+      this.events.onSector(this._currentSector, this._sectorCount);
     } else if (this.wave % BAL.wave.bossEvery === 0) {
       this.bossPending = true;
       this.bossWarnT = 1.7;
-      this.events.onBossWarn(sectorForWave(this.wave));
+      this.events.onBossWarn(this._currentSector);
     } else {
       this.events.onWave(this.wave);
     }
@@ -152,7 +164,7 @@ export class WaveDirector implements Director {
   }
 
   private rollKind(): EnemyKind {
-    const sector = sectorForWave(this.wave);
+    const sector = this._currentSector;
     const rel = this.wave - sectorIndexForWave(this.wave) * SECTOR_LEN;
     const available = sector.composition.filter((c) => rel >= c.from);
     // Fodder slowly gives way to specialists as the sector progresses.
@@ -175,6 +187,6 @@ export class WaveDirector implements Director {
     // bossHp is normalized against the Colosso's base HP, so heavier boss
     // kinds (higher base) naturally hit harder in later sectors.
     const hpMul = BAL.wave.bossHp(this.wave) / 520;
-    world.enemies.spawn(sectorForWave(this.wave).boss.kind, x, y, hpMul, BAL.wave.dmgMul(this.wave));
+    world.enemies.spawn(this._currentSector.boss.kind, x, y, hpMul, BAL.wave.dmgMul(this.wave));
   }
 }
