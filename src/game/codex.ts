@@ -6,6 +6,7 @@ import { META_DEFS } from './meta';
 import { COIN_SHAPE, GEM_SHAPE, MAX_GEMS, heartSprite } from './pickups';
 import { SHIP_SHAPE } from './player';
 import { firstWaveOf, SECTOR_LEN, SECTORS } from './sectors';
+import { SKINS } from './skins';
 import { paintIcon, UPGRADE_DEFS } from './upgrades';
 
 /**
@@ -404,6 +405,36 @@ const resourceEntries: CodexEntry[] = [
   },
 ];
 
+// ————— helper para renderizar ícone de skin —————
+
+function skinCodexIcon(skin: typeof SKINS[number], size = 48): HTMLCanvasElement {
+  return spriteIcon(shapeSprite({
+    radius: 17, color: skin.color, points: skin.shape,
+    fillAlpha: skin.fillAlpha ?? 0.3, innerDetail: skin.innerDetail,
+  }), size);
+}
+
+const skinEntries: CodexEntry[] = SKINS.map((skin) => ({
+  id: `skin-${skin.id}`,
+  name: skin.name,
+  tagline: skin.desc,
+  lore: skin.price === 0
+    ? 'A fuselagem padrão de fábrica, com assinatura ciano. Leve, equilibrada e responsiva — a escolha certa para qualquer missão, sem custo adicional.'
+    : `Uma fuselagem de edição limitada, com geometria exclusiva e assinatura energética própria. Adquirida no Hangar por ${skin.price} moedas, ela altera não só a silhueta da nave, mas também a cor de cada disparo, o brilho das lâminas orbitais e o pulso da nova — uma identidade visual completa no campo de batalha.`,
+  tactic: skin.price === 0
+    ? 'Sempre disponível, sem custo. O desempenho é idêntico ao de qualquer outra fuselagem — a escolha é puramente estética.'
+    : 'Cada fuselagem tem sua própria identidade visual, mas nenhuma oferece vantagem mecânica: a escolha é puramente estética. Compre no Hangar pela aba FUSELAGEM e equipe quantas quiser — a skin ativa persiste entre partidas.',
+  accent: skin.color,
+  icon: skinCodexIcon(skin, 52),
+  stats: [
+    { label: 'Preço', value: skin.price === 0 ? 'Grátis (padrão)' : `${skin.price} moedas` },
+    { label: 'Cor do casco', value: skin.color },
+    { label: 'Cor das balas', value: skin.bulletColor },
+    { label: 'Cor das lâminas', value: skin.bladeColor },
+    { label: 'Cor da nova', value: skin.novaColor },
+  ],
+}));
+
 // ————— sistemas (ondas, combo, pontuação) —————
 
 const systemEntries: CodexEntry[] = [
@@ -549,7 +580,7 @@ const systemEntries: CodexEntry[] = [
 export const CODEX_INTRO = 'Referência completa de tudo que existe no Baluarte: nave, ameaças, poderes e recursos.';
 
 export const CODEX: readonly CodexCategory[] = [
-  { id: 'ship', label: 'Nave', intro: 'A única unidade ainda em campo contra a Ruína.', entries: [shipEntry] },
+  { id: 'ship', label: 'Nave', intro: 'A única unidade ainda em campo contra a Ruína.', entries: [shipEntry, ...skinEntries] },
   { id: 'enemies', label: 'Ameaças', intro: 'Toda ameaça que você vai enfrentar, setor por setor: da Ruína ao Arquivo Magnético.', entries: enemyEntries },
   { id: 'upgrades', label: 'Combate', intro: 'Melhorias temporárias, escolhidas ao subir de nível durante a partida.', entries: upgradeEntries },
   { id: 'meta', label: 'Hangar', intro: 'Melhorias permanentes, compradas com moedas entre partidas.', entries: metaEntries },
