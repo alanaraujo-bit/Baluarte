@@ -2010,6 +2010,7 @@ export class UI {
           name: session.player.name,
           value: res.me.value,
           skin: this.save.data.skin,
+          joystickSkin: this.save.data.joystickSkin,
         }, board, true, res.entries.length));
       }
       if (!session.authed) {

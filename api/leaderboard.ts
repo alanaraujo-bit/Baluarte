@@ -26,7 +26,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   try {
     const top = await db().query(
-      `select p.handle, p.display_name, s.skin, s.${cols.value} as value
+      `select p.handle, p.display_name, s.skin, s.joystick_skin as joystick_skin, s.${cols.value} as value
        from saves s join players p on p.id = s.player_id
        where s.${cols.value} > 0
        order by s.${cols.value} desc, s.${cols.at} asc
@@ -38,6 +38,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       name: row.display_name as string,
       value: Number(row.value),
       skin: (row.skin as string) || 'aegis',
+      joystickSkin: (row.joystick_skin as string) || 'cibernetico',
     }));
 
     let me: LeaderboardResponse['me'] = null;

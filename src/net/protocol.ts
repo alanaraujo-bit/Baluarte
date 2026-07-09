@@ -346,6 +346,8 @@ export function cloudFromSave(d: SaveData): CloudSave {
     campaignStars: { ...d.campaignStars },
     skin: d.skin,
     ownedSkins: [...d.ownedSkins],
+    joystickSkin: d.joystickSkin,
+    ownedJoystickSkins: [...d.ownedJoystickSkins],
     totalGems: d.totalGems,
     bossesKilled: [...d.bossesKilled],
     achievements: { ...d.achievements },
