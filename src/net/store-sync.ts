@@ -23,16 +23,28 @@ interface Pending {
  * would overwrite the server's higher balance right back down. Polling here
  * and adopting the result via applyCloudToSave+persist() the moment payment
  * is confirmed closes that window, whether or not the store screen is open.
+ *
+ * Every poll loop is scoped to the specific purchaseId it's chasing (`activeId`).
+ * This matters when a player buys a second pack before the first one's poll
+ * tick has caught up to its approval: track() immediately cancels the old
+ * timer and takes over `activeId`, so when the first tick's in-flight
+ * request resolves, it sees it's been superseded and does nothing — it can
+ * no longer wipe the second purchase's localStorage entry or stop its
+ * tracking. (An earlier version got this wrong: a single `polling` boolean
+ * plus an unconditional clear() meant the first purchase's late-arriving
+ * "approved" response would delete the second purchase's tracking record,
+ * silently orphaning it even though the server had already credited it.)
  */
 class StoreSync {
   private save: SaveSystem | null = null;
   private timer: number | null = null;
-  private polling = false;
+  private activeId: string | null = null;
   private readonly listeners = new Set<(status: Resolution) => void>();
 
   init(save: SaveSystem): void {
     this.save = save;
-    if (this.read()) this.poll();
+    const pending = this.read();
+    if (pending) this.poll(pending.purchaseId);
   }
 
   onResolve(cb: (status: Resolution) => void): void {
@@ -45,7 +57,7 @@ class StoreSync {
 
   track(purchaseId: string): void {
     this.write({ purchaseId, startedAt: Date.now() });
-    this.poll();
+    this.poll(purchaseId);
   }
 
   /** True while a purchase started on this device is still awaiting confirmation. */
@@ -53,45 +65,62 @@ class StoreSync {
     return this.read() !== null;
   }
 
-  private poll(): void {
-    if (this.polling) return;
-    this.polling = true;
+  private poll(purchaseId: string): void {
+    if (this.activeId === purchaseId) return; // already the one being chased
+    if (this.timer !== null) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+    this.activeId = purchaseId;
+
     const tick = async (): Promise<void> => {
+      if (this.activeId !== purchaseId) return; // superseded by a newer purchase mid-flight
+
       const pending = this.read();
-      if (!pending) {
-        this.polling = false;
+      if (!pending || pending.purchaseId !== purchaseId) {
+        if (this.activeId === purchaseId) this.activeId = null;
         return;
       }
       if (Date.now() - pending.startedAt > MAX_TRACK_MS) {
-        this.clear();
-        this.polling = false;
-        this.notify('expired');
+        this.resolveAs(purchaseId, 'expired');
         return;
       }
+
       try {
-        const res = await api.purchaseStatus(pending.purchaseId);
+        const res = await api.purchaseStatus(purchaseId);
+        if (this.activeId !== purchaseId) return; // superseded while the request was in flight
+
         if (res.status === 'approved') {
           if (res.save && this.save) {
             applyCloudToSave(this.save.data, res.save);
             this.save.persist();
           }
-          this.clear();
-          this.polling = false;
-          this.notify('approved');
+          this.resolveAs(purchaseId, 'approved');
           return;
         }
         if (res.status === 'rejected' || res.status === 'expired') {
-          this.clear();
-          this.polling = false;
-          this.notify(res.status);
+          this.resolveAs(purchaseId, res.status);
           return;
         }
       } catch {
         // offline or a server hiccup — keep polling, same posture as sync.ts
       }
-      this.timer = window.setTimeout(() => void tick(), POLL_MS);
+
+      if (this.activeId === purchaseId) {
+        this.timer = window.setTimeout(() => void tick(), POLL_MS);
+      }
     };
     void tick();
+  }
+
+  private resolveAs(purchaseId: string, status: Resolution): void {
+    if (this.activeId === purchaseId) this.activeId = null;
+    if (this.timer !== null) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+    this.clearIfMatches(purchaseId);
+    this.notify(status);
   }
 
   private notify(status: Resolution): void {
@@ -115,11 +144,12 @@ class StoreSync {
     }
   }
 
-  private clear(): void {
-    if (this.timer !== null) {
-      clearTimeout(this.timer);
-      this.timer = null;
-    }
+  /** Only removes the stored record if it still belongs to `purchaseId` — a
+   * newer tracked purchase's entry must never be wiped by an older one's
+   * resolution (see class doc comment). */
+  private clearIfMatches(purchaseId: string): void {
+    const pending = this.read();
+    if (pending?.purchaseId !== purchaseId) return;
     try {
       localStorage.removeItem(PENDING_KEY);
     } catch {
