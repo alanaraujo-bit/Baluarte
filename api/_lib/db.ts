@@ -6,6 +6,18 @@ export interface Queryable {
   query(text: string, values?: unknown[]): Promise<{ rows: any[]; rowCount: number | null }>;
 }
 
+/**
+ * Adding a field to CloudSave (src/net/protocol.ts)? It is NOT enough on its
+ * own — this file has to grow in lockstep or every login/save round-trip
+ * silently drops the new field, which then crashes the merge helpers in
+ * protocol.ts (they spread arrays like `[...c.someList]`, which throws on
+ * undefined). Three things to update together:
+ *   1. SAVE_COLS below + the matching column(s) in db/schema.sql
+ *   2. SaveRow's shape
+ *   3. cloudSaveFromRow() and writeCloudSave()
+ * This has broken production login twice already from a field being added
+ * to CloudSave without a matching update here.
+ */
 export const SAVE_COLS =
   'coins, meta, best_wave, best_score, best_time, best_coins, runs, total_kills, total_time, tutorial_done, settings, campaign_level, campaign_stars, skin, owned_skins, total_gems, bosses_killed, achievements';
 
