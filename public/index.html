@@ -3,22 +3,56 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#05070f">
-  <meta name="description" content="BALUARTE — resista à Ruína. Um arena survival de ação intensa, direto no navegador.">
-  <title>BALUARTE</title>
+
+  <!-- ═══ Primary Meta ═══ -->
+  <title>Baluarte — Resista à Ruína</title>
+  <meta name="description" content="Baluarte — resista à Ruína. Arena survival roguelite de ação intensa, direto no navegador. Você é a última linha de defesa.">
+  <meta name="keywords" content="baluarte, jogo, arena, survival, roguelite, navegador, mobile, action, brasileiro">
+
+  <!-- ═══ Theme Color (adaptive) ═══ -->
+  <meta name="theme-color" content="#05070f" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f0f4ff" media="(prefers-color-scheme: light)">
+  <meta name="msapplication-TileColor" content="#05070f">
+
+  <!-- ═══ Manifest ═══ -->
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" type="image/png" href="icons/icon-192.png">
+
+  <!-- ═══ Favicons ═══ -->
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
+
+  <!-- ═══ Apple / Mobile Web App ═══ -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="BALUARTE">
+  <meta name="apple-mobile-web-app-title" content="Baluarte">
+
+  <!-- ═══ Open Graph / Social Sharing ═══ -->
+  <meta property="og:title" content="Baluarte — Resista à Ruína">
+  <meta property="og:description" content="Arena survival roguelite. Você é o Baluarte: a última linha de defesa contra a Ruína. Sobreviva, evolua e resista.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://baluarte.app">
+  <meta property="og:image:alt" content="Baluarte — O Bastião, um escudo hexagonal cristalino">
+  <meta property="og:image" content="/icons/icon-512.png">
+  <meta property="og:image:width" content="512">
+  <meta property="og:image:height" content="512">
+  <meta property="og:locale" content="pt_BR">
+
+  <!-- ═══ Twitter Card ═══ -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Baluarte — Resista à Ruína">
+  <meta name="twitter:description" content="Arena survival roguelite. Você é o Baluarte: a última linha de defesa contra a Ruína.">
+  <meta name="twitter:image" content="/icons/icon-512.png">
+
+  <!-- ═══ Styles ═══ -->
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <canvas id="game"></canvas>
   <div id="ui"></div>
-  <div id="boot"><div class="boot-logo">BALUARTE</div></div>
+  <div id="boot"><div class="boot-logo">Baluarte</div></div>
   <noscript><p style="color:#eaf6ff;text-align:center;padding:40vh 24px 0">Este jogo precisa de JavaScript ativado.</p></noscript>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="https://sdk.mercadopago.com/js/v2" async defer></script>

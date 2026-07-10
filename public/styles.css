@@ -1,20 +1,68 @@
-/* ————— BALUARTE — design system ————— */
+/* ————— Baluarte — design system —————
+ * Brand: Baluarte — Resista à Ruína
+ * Concept: O Bastião — hexagonal crystalline shield
+ * Personality: Orgânico, Elegante, Ousado
+ * ——————————————————————————————— */
 
 :root {
+  /* — Background & Surface — */
   --bg: #05070f;
-  --panel: rgba(14, 20, 40, 0.82);
-  --panel-line: rgba(88, 130, 255, 0.16);
+  --bg-elevated: #0a1024;
+  --surface: rgba(14, 20, 40, 0.82);
+  --surface-line: rgba(88, 130, 255, 0.16);
+
+  /* — Semantic Colors — */
   --cyan: #35f0ff;
   --cyan-dim: rgba(53, 240, 255, 0.4);
   --magenta: #ff2e8a;
   --amber: #ffc857;
   --green: #52ffa8;
   --red: #ff3b5c;
+  --purple: #b45cff;
+
+  /* — Text Hierarchy — */
   --text: #eaf6ff;
+  --text-secondary: #bccce8;
   --dim: #8fa3c8;
+  --muted: #5a6e96;
+
+  /* — Legacy Aliases (backward compat) — */
+  --panel: var(--surface);
+  --panel-line: var(--surface-line);
+
+  /* — Spacing & Safe Area — */
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* — Typography — */
   --font: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+
+  /* — Brand Tokens — */
+  --brand-primary: var(--cyan);
+  --brand-glow: 0 0 26px rgba(53, 240, 255, 0.45);
+  --brand-gradient: linear-gradient(180deg, #ffffff 8%, #8beaff 52%, #2f9dff 100%);
+}
+
+/* — Light Mode (adaptive, for future use) — */
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f0f4ff;
+    --bg-elevated: #e4ecfa;
+    --surface: rgba(255, 255, 255, 0.82);
+    --surface-line: rgba(0, 100, 200, 0.12);
+    --cyan: #0098cc;
+    --cyan-dim: rgba(0, 152, 204, 0.35);
+    --magenta: #cc2070;
+    --amber: #cc9900;
+    --green: #1a9e5b;
+    --red: #cc2d3d;
+    --purple: #8b3fd4;
+    --text: #0a1428;
+    --text-secondary: #2c3a5a;
+    --dim: #4a5a7a;
+    --muted: #7a8aaa;
+    --brand-gradient: linear-gradient(180deg, #005580 8%, #0098cc 52%, #003d66 100%);
+  }
 }
 
 * {
@@ -124,7 +172,7 @@ html, body {
   letter-spacing: 0.14em;
   margin-left: 0.14em; /* optical centering vs letter-spacing */
   white-space: nowrap;
-  background: linear-gradient(180deg, #ffffff 8%, #8beaff 52%, #2f9dff 100%);
+  background: var(--brand-gradient);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -299,8 +347,8 @@ html, body {
   gap: 7px;
   padding: 7px 14px;
   border-radius: 999px;
-  border: 1px solid var(--panel-line);
-  background: var(--panel);
+  border: 1px solid var(--surface-line);
+  background: var(--surface);
   font-size: 12.5px;
   font-weight: 700;
   color: var(--dim);
@@ -344,8 +392,8 @@ html, body {
   width: 100%;
   max-width: 380px;
   border-radius: 18px;
-  border: 1px solid var(--panel-line);
-  background: var(--panel);
+  border: 1px solid var(--surface-line);
+  background: var(--surface);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
 }
@@ -386,7 +434,7 @@ html, body {
   height: 52px;
   border-radius: 14px;
   background: rgba(6, 10, 24, 0.6);
-  border: 1px solid var(--panel-line);
+  border: 1px solid var(--surface-line);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -784,7 +832,7 @@ html, body {
   padding: 4px 9px;
   border-radius: 8px;
   background: rgba(6, 10, 24, 0.72);
-  border: 1px solid var(--panel-line);
+  border: 1px solid var(--surface-line);
   color: var(--green);
   font-family: var(--font);
   font-weight: 800;
@@ -809,8 +857,8 @@ html, body {
   width: 46px;
   height: 46px;
   border-radius: 14px;
-  border: 1px solid var(--panel-line);
-  background: var(--panel);
+  border: 1px solid var(--surface-line);
+  background: var(--surface);
   display: none;
   align-items: center;
   justify-content: center;
@@ -838,9 +886,9 @@ html, body {
   gap: 14px;
   padding: 14px 16px;
   border-radius: 18px;
-  border: 1px solid var(--panel-line);
+  border: 1px solid var(--surface-line);
   border-left: 3px solid var(--accent, var(--cyan));
-  background: var(--panel);
+  background: var(--surface);
   color: var(--text);
   font-family: var(--font);
   text-align: left;
@@ -1194,7 +1242,7 @@ html, body {
   padding: 0;
   overflow: hidden;
   border-radius: 18px;
-  border: 1px solid var(--panel-line);
+  border: 1px solid var(--surface-line);
   background: rgba(88, 130, 255, 0.06);
   margin-top: 8px;
 }
@@ -1204,7 +1252,7 @@ html, body {
   align-items: center;
   justify-content: center;
   padding: 12px 8px;
-  background: var(--panel);
+  background: var(--surface);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
 }
